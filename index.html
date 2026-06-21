@@ -69,14 +69,18 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-3 gap-4 mt-6">
+                <div class="grid grid-cols-4 gap-4 mt-6">
                     <div>
                         <label class="block text-sm font-medium mb-1">STT in đầu</label>
-                        <input id="sttDau" type="number" value="1" class="w-full px-4 py-3 border rounded-xl">
+                        <input id="sttDau" type="number" value="1" class="w-full px-4 py-3 border rounded-xl" oninput="updateSttCuoi()">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Số lượng tem</label>
+                        <input id="soLuongTem" type="number" value="1" min="1" class="w-full px-4 py-3 border rounded-xl font-semibold" oninput="updateSttCuoi()">
                     </div>
                     <div>
                         <label class="block text-sm font-medium mb-1">STT in cuối</label>
-                        <input id="sttCuoi" type="number" value="1" class="w-full px-4 py-3 border rounded-xl">
+                        <input id="sttCuoi" type="number" value="1" class="w-full px-4 py-3 border rounded-xl bg-gray-50" readonly>
                     </div>
                     <div>
                         <label class="block text-sm font-medium mb-1">Ngày SX</label>
@@ -90,13 +94,11 @@
                 </div>
 
                 <div class="mt-8 flex gap-4">
-                    <button onclick="loadFromGrid()" 
-                            class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-xl font-medium">
+                    <button onclick="loadFromGrid()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-xl font-medium">
                         <i class="fas fa-search"></i> Chọn từ Danh sách
                     </button>
-                    <button onclick="printLabels()" 
-                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-medium text-xl">
-                        <i class="fas fa-print"></i> IN NHÃN
+                    <button onclick="clearForm()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-4 rounded-xl font-medium">
+                        <i class="fas fa-trash"></i> Xóa Form
                     </button>
                 </div>
             </div>
@@ -136,6 +138,10 @@
                         </table>
                     </div>
                 </div>
+
+                <button onclick="printLabels()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
+                    <i class="fas fa-print"></i> IN NHÃN
+                </button>
             </div>
         </div>
     </div>
@@ -303,6 +309,13 @@
             `;
         }
 
+        function updateSttCuoi() {
+            const sttDau = parseInt(document.getElementById('sttDau').value) || 1;
+            const soLuong = parseInt(document.getElementById('soLuongTem').value) || 1;
+            const sttCuoi = sttDau + soLuong - 1;
+            document.getElementById('sttCuoi').value = Math.max(sttCuoi, sttDau);
+        }
+
         function printLabels() {
             const sttDau = parseInt(document.getElementById('sttDau').value) || 1;
             const sttCuoi = parseInt(document.getElementById('sttCuoi').value) || 1;
@@ -310,24 +323,15 @@
 
             let printContent = `
                 <style>
-                    @page { 
-                        size: 90mm 60mm; 
-                        margin: 0mm !important;
-                    }
-                    body { 
-                        margin: 0 !important; 
-                        padding: 0 !important; 
-                    }
+                    @page { size: 90mm 60mm; margin: 0mm !important; }
+                    body { margin: 0 !important; padding: 0 !important; }
                     .label { 
-                        width: 90mm; 
-                        height: 60mm; 
+                        width: 90mm; height: 60mm; 
                         padding: 1.5mm 4mm 2mm 4mm !important; 
                         box-sizing: border-box;
                         page-break-after: always;
                         font-family: Arial, sans-serif;
                         margin: 0 !important;
-                        overflow: hidden;
-                        border: none; /* Bỏ khung nếu cần */
                     }
                 </style>
             `;
