@@ -97,8 +97,8 @@
                     <button onclick="loadFromGrid()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-xl font-medium">
                         <i class="fas fa-search"></i> Chọn từ Danh sách
                     </button>
-                    <button onclick="clearForm()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-4 rounded-xl font-medium">
-                        <i class="fas fa-trash"></i> Xóa Form
+                    <button onclick="resetSTT()" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-xl font-medium">
+                        <i class="fas fa-undo"></i> Reset STT
                     </button>
                 </div>
             </div>
@@ -352,10 +352,23 @@
             `);
             win.document.close();
             setTimeout(() => win.print(), 800);
+
+            // Tự động cập nhật STT cho lần in sau
+            const nextStt = sttCuoi + 1;
+            document.getElementById('sttDau').value = nextStt;
+            updateSttCuoi();
         }
-        
+
+        function resetSTT() {
+            if (confirm("Reset STT về 1?")) {
+                document.getElementById('sttDau').value = 1;
+                document.getElementById('soLuongTem').value = 1;
+                updateSttCuoi();
+            }
+        }
+
         function clearForm() {
-            if (confirm("Xóa toàn bộ form?")) location.reload();
+            // Giữ hàm cũ nếu cần dùng sau
         }
 
         window.onload = () => {
