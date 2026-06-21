@@ -27,6 +27,7 @@
         <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">HỆ THỐNG IN NHÃN THÀNH PHẨM</h1>
 
         <div class="grid grid-cols-12 gap-6">
+            <!-- Form Nhập -->
             <div class="col-span-12 lg:col-span-7 bg-white rounded-2xl shadow p-8">
                 <h2 class="text-2xl font-semibold mb-6">Nhập Thông Tin</h2>
 
@@ -93,6 +94,10 @@
                         <i class="fas fa-undo"></i> Reset STT
                     </button>
                 </div>
+
+                <button onclick="printLabels()" class="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
+                    <i class="fas fa-print"></i> IN NHÃN
+                </button>
             </div>
 
             <!-- Preview + Danh sách -->
@@ -128,10 +133,6 @@
                         </table>
                     </div>
                 </div>
-
-                <button onclick="printLabels()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
-                    <i class="fas fa-print"></i> IN NHÃN
-                </button>
             </div>
         </div>
     </div>
@@ -163,18 +164,12 @@
                 } else {
                     await counterRef.set({ lastSTT: 1 });
                 }
-            } catch (e) {
-                console.error("Lỗi load STT:", e);
-            }
+            } catch (e) { console.error(e); }
             updateSttCuoi();
         }
 
         async function saveLastSTT(newSTT) {
-            try {
-                await counterRef.set({ lastSTT: newSTT });
-            } catch (e) {
-                console.error("Lỗi lưu STT:", e);
-            }
+            try { await counterRef.set({ lastSTT: newSTT }); } catch (e) {}
         }
 
         function loadProductsFromFirebase() {
@@ -184,11 +179,12 @@
                     products.push({ id: doc.id, ...doc.data() });
                 });
                 populateGrid();
+            }, (error) => {
+                console.error("Firebase error:", error);
             });
         }
 
         async function importExcel(input) {
-            // Giữ nguyên hàm importExcel cũ của bạn
             const file = input.files[0];
             if (!file) return;
             const reader = new FileReader();
@@ -219,7 +215,7 @@
                         alert(`✅ Import thành công ${newProducts.length} sản phẩm!`);
                     }
                 } catch (err) {
-                    alert("Lỗi import: " + err.message);
+                    alert("Lỗi import Excel: " + err.message);
                 }
             };
             reader.readAsArrayBuffer(file);
@@ -228,6 +224,10 @@
         function populateGrid() {
             const tbody = document.getElementById('gridBody');
             tbody.innerHTML = '';
+            if (products.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="text-center py-8 text-gray-500">Chưa có dữ liệu. Hãy import Excel.</td></tr>`;
+                return;
+            }
             products.forEach((prod, i) => {
                 const tr = document.createElement('tr');
                 tr.className = 'cursor-pointer border-b hover:bg-gray-50';
@@ -263,14 +263,14 @@
 
         function updatePreview() {
             const preview = document.getElementById('previewLabel');
-            const sku = document.getElementById('sku').value || 'TP101020202.04.001';
+            const sku = document.getElementById('sku').value || 'TP101020203.01.001';
             const maBTP = document.getElementById('maBTP').value || 'D009MT15066-02-0K';
             const tenTP = document.getElementById('tenTP').value || 'TP CẤP ĐÔNG SẦU RIÊNG MÚI RI A (4 TÚI) - HẦM ĐÔNG';
             const quyCach = document.getElementById('quyCach').value || '20kg';
-            const vungCode = document.getElementById('vungNguyenLieu').value;
+            const vungCode = document.getElementById('vungNguyenLieu').value || 'MT';
             const vungFull = vungCode === 'BP' ? 'Bình Phước' : vungCode === 'DN' ? 'Đồng Nai' : 'Miền Tây';
             const ngaySX = document.getElementById('ngaySX').value ? 
-                document.getElementById('ngaySX').value.split('-').reverse().join('/') : '17/06/2026';
+                document.getElementById('ngaySX').value.split('-').reverse().join('/') : '21/06/2026';
 
             preview.innerHTML = `
                 <div style="font-size: 8.7pt; line-height: 1.18; padding: 3px 5px 4px 5px; height: 100%;">
@@ -315,45 +315,28 @@
 
             let printContent = `
                 <style>
-                    @page {
-                        size: 90mm 60mm;
-                        margin: 0mm !important;
-                    }
-                    body {
-                        margin: 0 !important;
-                        padding: 0 !important;
-                    }
-                    .label {
-                        width: 90mm;
-                        height: 60mm;
-                        padding: 1.5mm 4mm 2mm 4mm;
-                        box-sizing: border-box;
-                        page-break-after: always;
-                        font-family: Arial, sans-serif;
-                        overflow: hidden;
-                    }
-                    .label:last-child {
-                        page-break-after: avoid;
-                    }
+                    @page { size: 90mm 60mm; margin: 0mm !important; }
+                    body { margin: 0 !important; padding: 0 !important; }
+                    .label { width: 90mm; height: 60mm; padding: 1.5mm 4mm 2mm 4mm; box-sizing: border-box; page-break-after: always; }
+                    .label:last-child { page-break-after: avoid; }
                 </style>
             `;
 
             const base = document.getElementById('previewLabel').innerHTML;
-
             for (let i = 0; i < count; i++) {
                 let html = base.replace(/5200/g, sttDau + i);
                 printContent += `<div class="label">${html}</div>`;
             }
 
             const win = window.open('', '_blank');
-            win.document.write(`
-                <html>
-                    <head><title>In Nhãn</title></head>
-                    <body>${printContent}</body>
-                </html>
-            `);
+            win.document.write(`<html><head><title>In Nhãn</title></head><body>${printContent}</body></html>`);
             win.document.close();
             setTimeout(() => win.print(), 600);
+
+            const nextSTT = sttCuoi + 1;
+            document.getElementById('sttDau').value = nextSTT;
+            saveLastSTT(nextSTT);
+            updateSttCuoi();
         }
 
         function resetSTT() {
@@ -366,7 +349,7 @@
                     updateSttCuoi();
                     alert("Đã reset STT thành công!");
                 }
-            } else if (password !== null) {
+            } else if (password) {
                 alert("Mật khẩu sai!");
             }
         }
@@ -380,7 +363,7 @@
             setTimeout(() => {
                 loadProductsFromFirebase();
                 updatePreview();
-            }, 1000);
+            }, 800);
         };
     </script>
 </body>
