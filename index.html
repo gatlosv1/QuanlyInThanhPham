@@ -70,8 +70,9 @@
                                 <label class="block text-sm font-medium mb-1">VÙNG NGUYÊN LIỆU</label>
                                 <select id="vungNguyenLieu" class="w-full px-4 py-3 border rounded-xl" onchange="updatePreview()">
                                     <option value="MT">MT - Miền Tây</option>
-                                    <option value="BP">BP - Bình Phước</option>
+                                    <option value="BP">BP - Bình Phước</option> 
                                     <option value="DN">DN - Đồng Nai</option>
+                                    <option value="DL">DL - DakLak</option>
                                 </select>
                             </div>
                         </div>
@@ -109,9 +110,16 @@
                         </button>
                     </div>
 
-                    <button onclick="printLabels()" class="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
-                        <i class="fas fa-print"></i> IN NHÃN
-                    </button>
+                    <div class="grid grid-cols-2 gap-4 mt-6">
+                        <button onclick="printLabels(false)" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
+                            <i class="fas fa-print"></i> IN NHÃN MỚI
+                        </button>
+                        <button onclick="printLabels(true)" 
+                                class="bg-orange-600 hover:bg-orange-700 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
+                            <i class="fas fa-redo"></i> IN LẠI (không tăng số)
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Preview -->
@@ -184,6 +192,10 @@
                         <button onclick="toggleSelectAll()" id="selectAllBtn"
                                 class="bg-gray-600 hover:bg-gray-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 text-sm">
                             <i class="fas fa-check-square"></i> Chọn tất cả
+                        </button>
+                        <button onclick="reprintFromHistory()" 
+                                class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-xl flex items-center gap-2">
+                            <i class="fas fa-redo"></i> In lại tem đã chọn
                         </button>
                         <button onclick="deleteSelectedHistory()" 
                                 class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl flex items-center gap-2">
@@ -438,51 +450,75 @@
             }
         }
 
+        // In lại từ lịch sử báo cáo
+        function reprintFromHistory() {
+            if (selectedHistoryIds.size === 0) {
+                alert("Vui lòng tích chọn ít nhất một bản ghi để in lại!");
+                return;
+            }
+            if (selectedHistoryIds.size > 1) {
+                alert("Chỉ hỗ trợ in lại một bản ghi một lúc. Vui lòng chọn duy nhất 1 item.");
+                return;
+            }
+
+            const id = Array.from(selectedHistoryIds)[0];
+            const item = printHistory.find(p => p.id === id);
+            if (!item) {
+                alert("Không tìm thấy dữ liệu!");
+                return;
+            }
+
+            switchTab(0);
+
+            document.getElementById('maBTP').value = item.maBTP || '';
+            document.getElementById('sku').value = item.sku || '';
+            document.getElementById('tenTP').value = item.tenTP || '';
+            document.getElementById('quyCach').value = item.quyCach || '20kg';
+            document.getElementById('sttDau').value = item.sttDau || 1;
+            document.getElementById('soLuongTem').value = item.soLuong || 1;
+            updateSttCuoi();
+            updatePreview();
+
+            setTimeout(() => {
+                alert(`✅ Đã load thông tin in lại cho STT ${item.sttDau || ''} - ${item.sttCuoi || ''}\nHãy bấm nút "IN LẠI" màu cam để in lại.`);
+            }, 400);
+        }
+
         async function deleteSelectedHistory() {
             if (selectedHistoryIds.size === 0) {
                 alert("Vui lòng tích chọn ít nhất một bản ghi để xóa!");
                 return;
             }
-            if (!confirm(`Bạn có chắc muốn xóa ${selectedHistoryIds.size} bản ghi lịch sử? Hành động này không thể hoàn tác.`)) {
-                return;
-            }
+            if (!confirm(`Bạn có chắc muốn xóa ${selectedHistoryIds.size} bản ghi lịch sử?`)) return;
 
             try {
                 const batch = db.batch();
                 selectedHistoryIds.forEach(id => {
-                    const docRef = db.collection("printHistory").doc(id);
-                    batch.delete(docRef);
+                    batch.delete(db.collection("printHistory").doc(id));
                 });
-
                 await batch.commit();
-                alert(`✅ Đã xóa ${selectedHistoryIds.size} bản ghi thành công!`);
+                alert(`✅ Đã xóa ${selectedHistoryIds.size} bản ghi!`);
                 selectedHistoryIds.clear();
             } catch (error) {
-                console.error(error);
-                alert("Lỗi khi xóa: " + error.message);
+                alert("Lỗi: " + error.message);
             }
         }
 
         function exportReportExcel() {
-            if (printHistory.length === 0) return alert("Chưa có dữ liệu in nào!");
-            
-            const data = printHistory.map(item => {
-                const kg = parseFloat(item.quyCach) || 20;
-                return {
-                    "Thời gian": new Date(item.timestamp?.toDate() || item.timestamp).toLocaleString('vi-VN'),
-                    "Mã Lot": item.maBTP,
-                    "SKU": item.sku,
-                    "Tên Thành Phẩm": item.tenTP,
-                    "Số lượng tem": item.soLuong,
-                    "Quy Cách": item.quyCach,
-                    "Tổng khối lượng (kg)": item.soLuong * kg
-                };
-            });
-
+            if (printHistory.length === 0) return alert("Chưa có dữ liệu!");
+            const data = printHistory.map(item => ({
+                "Thời gian": new Date(item.timestamp?.toDate() || item.timestamp).toLocaleString('vi-VN'),
+                "Mã Lot": item.maBTP,
+                "SKU": item.sku,
+                "Tên Thành Phẩm": item.tenTP,
+                "Số lượng tem": item.soLuong,
+                "Quy Cách": item.quyCach,
+                "Tổng khối lượng (kg)": item.soLuong * (parseFloat(item.quyCach) || 20)
+            }));
             const ws = XLSX.utils.json_to_sheet(data);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "BaoCaoInNhãn");
-            XLSX.writeFile(wb, `BaoCao_SanLuong_In_${new Date().toISOString().slice(0,10)}.xlsx`);
+            XLSX.utils.book_append_sheet(wb, ws, "BaoCao");
+            XLSX.writeFile(wb, `BaoCao_In_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
         function logPrint() {
@@ -499,6 +535,44 @@
             db.collection("printHistory").add(data);
         }
 
+        // ... (các hàm importExcel, populateGrid, updatePreview, updateSttCuoi, resetSTT, switchTab giữ nguyên)
+
+        function printLabels(isReprint = false) {
+            const sttDau = parseInt(document.getElementById('sttDau').value) || 1;
+            const sttCuoi = parseInt(document.getElementById('sttCuoi').value) || 1;
+            const count = Math.max(1, sttCuoi - sttDau + 1);
+
+            let printContent = `
+                <style>
+                    @page { size: 90mm 60mm; margin: 0mm !important; }
+                    body { margin: 0 !important; padding: 0 !important; font-family: Tahoma, Arial, sans-serif; font-weight: 700; letter-spacing: -0.2px; }
+                    .label { width: 90mm; height: 60mm; padding: 1.2mm 3.5mm 1.8mm 3.5mm; box-sizing: border-box; page-break-after: always; font-size: 9.0pt; line-height: 1.15; }
+                </style>
+            `;
+
+            const base = document.getElementById('previewLabel').innerHTML;
+            for (let i = 0; i < count; i++) {
+                let html = base.replace(/5200/g, sttDau + i);
+                printContent += `<div class="label">${html}</div>`;
+            }
+
+            const win = window.open('', '_blank');
+            win.document.write(`<html><head><title>${isReprint ? 'In Lại' : 'In Nhãn'}</title></head><body>${printContent}</body></html>`);
+            win.document.close();
+            setTimeout(() => win.print(), 600);
+
+            if (!isReprint) {
+                logPrint();
+                const nextSTT = sttCuoi + 1;
+                document.getElementById('sttDau').value = nextSTT;
+                saveLastSTT(nextSTT);
+                updateSttCuoi();
+            } else {
+                alert(`✅ Đã in lại ${count} tem (KHÔNG ghi log - KHÔNG tăng tổng số lượng)`);
+            }
+        }
+
+        // Các hàm còn lại (importExcel, populateGrid, ...)
         async function importExcel(input) {
             const file = input.files[0];
             if (!file) return;
@@ -522,14 +596,14 @@
                     }
 
                     if (newProducts.length === 0) return alert("Không tìm thấy dữ liệu!");
-                    if (confirm(`Import ${newProducts.length} sản phẩm lên Firebase?`)) {
+                    if (confirm(`Import ${newProducts.length} sản phẩm?`)) {
                         for (const p of newProducts) {
                             await db.collection("thanhpham").add(p);
                         }
-                        alert(`✅ Import thành công ${newProducts.length} sản phẩm!`);
+                        alert(`✅ Import thành công!`);
                     }
                 } catch (err) {
-                    alert("Lỗi import Excel: " + err.message);
+                    alert("Lỗi: " + err.message);
                 }
             };
             reader.readAsArrayBuffer(file);
@@ -539,7 +613,7 @@
             const tbody = document.getElementById('gridBody');
             tbody.innerHTML = '';
             if (products.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="text-center py-8 text-gray-500">Chưa có dữ liệu. Hãy import Excel.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="3" class="text-center py-8 text-gray-500">Chưa có dữ liệu.</td></tr>`;
                 return;
             }
             products.forEach((prod, i) => {
@@ -564,8 +638,8 @@
         }
 
         function loadFromGrid() {
-            if (selectedIndex < 0) return alert("Vui lòng click vào một dòng trong danh sách!");
-            alert("Đã load dữ liệu thành công!");
+            if (selectedIndex < 0) return alert("Vui lòng click vào một dòng!");
+            alert("Đã load dữ liệu!");
         }
 
         function filterGrid() {
@@ -579,12 +653,12 @@
             const preview = document.getElementById('previewLabel');
             const sku = document.getElementById('sku').value || 'TP101020203.01.001';
             const maBTP = document.getElementById('maBTP').value || 'D009MT15066-02-0K';
-            const tenTP = document.getElementById('tenTP').value || 'TP CẤP ĐÔNG SẦU RIÊNG MÚI RI A (4 TÚI) - HẦM ĐÔNG';
+            const tenTP = document.getElementById('tenTP').value || 'TP CẤP ĐÔNG SẦU RIÊNG...';
             const quyCach = document.getElementById('quyCach').value || '20kg';
             const vungCode = document.getElementById('vungNguyenLieu').value || 'MT';
             const vungFull = vungCode === 'BP' ? 'Bình Phước' : vungCode === 'DN' ? 'Đồng Nai' : 'Miền Tây';
             const ngaySX = document.getElementById('ngaySX').value ? 
-                document.getElementById('ngaySX').value.split('-').reverse().join('/') : '21/06/2026';
+                document.getElementById('ngaySX').value.split('-').reverse().join('/') : '22/06/2026';
 
             preview.innerHTML = `
                 <div style="font-family: Tahoma, Arial, sans-serif; font-size: 9.0pt; font-weight: 700; line-height: 1.15; padding: 3px 5px; height: 100%; letter-spacing: -0.2px;">
@@ -620,39 +694,6 @@
             const sttDau = parseInt(document.getElementById('sttDau').value) || 1;
             const soLuong = parseInt(document.getElementById('soLuongTem').value) || 1;
             document.getElementById('sttCuoi').value = sttDau + soLuong - 1;
-        }
-
-        function printLabels() {
-            const sttDau = parseInt(document.getElementById('sttDau').value) || 1;
-            const sttCuoi = parseInt(document.getElementById('sttCuoi').value) || 1;
-            const count = Math.max(1, sttCuoi - sttDau + 1);
-
-            let printContent = `
-                <style>
-                    @page { size: 90mm 60mm; margin: 0mm !important; }
-                    body { margin: 0 !important; padding: 0 !important; font-family: Tahoma, Arial, sans-serif; font-weight: 700; letter-spacing: -0.2px; }
-                    .label { width: 90mm; height: 60mm; padding: 1.2mm 3.5mm 1.8mm 3.5mm; box-sizing: border-box; page-break-after: always; font-size: 9.0pt; line-height: 1.15; }
-                    .label:last-child { page-break-after: avoid; }
-                </style>
-            `;
-
-            const base = document.getElementById('previewLabel').innerHTML;
-            for (let i = 0; i < count; i++) {
-                let html = base.replace(/5200/g, sttDau + i);
-                printContent += `<div class="label">${html}</div>`;
-            }
-
-            const win = window.open('', '_blank');
-            win.document.write(`<html><head><title>In Nhãn</title></head><body>${printContent}</body></html>`);
-            win.document.close();
-            setTimeout(() => win.print(), 600);
-
-            logPrint();
-
-            const nextSTT = sttCuoi + 1;
-            document.getElementById('sttDau').value = nextSTT;
-            saveLastSTT(nextSTT);
-            updateSttCuoi();
         }
 
         function resetSTT() {
