@@ -23,113 +23,180 @@
         }
         .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 2000; align-items: center; justify-content: center; }
         .modal-content { background: white; border-radius: 12px; width: 90%; max-width: 620px; max-height: 85vh; overflow: hidden; }
+        .report-card {
+            background: linear-gradient(135deg, #1f2937, #111827);
+            color: white;
+            border-radius: 16px;
+            padding: 24px;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
     <div class="max-w-7xl mx-auto p-6">
-        <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">HỆ THỐNG IN NHÃN THÀNH PHẨM</h1>
+        <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">HỆ THỐNG IN NHÃN THÀNH PHẨM</h1>
 
-        <div class="grid grid-cols-12 gap-6">
-            <div class="col-span-12 lg:col-span-7 bg-white rounded-2xl shadow p-8">
-                <h2 class="text-2xl font-semibold mb-6">Nhập Thông Tin</h2>
+        <!-- Tabs -->
+        <div class="flex border-b mb-8 bg-white rounded-t-2xl shadow">
+            <button onclick="switchTab(0)" id="tab0" 
+                    class="tab-button flex-1 py-4 text-lg font-semibold border-b-4 border-blue-600 text-blue-600">NHẬP THÔNG TIN</button>
+            <button onclick="switchTab(1)" id="tab1" 
+                    class="tab-button flex-1 py-4 text-lg font-semibold text-gray-500">BÁO CÁO SẢN LƯỢNG</button>
+        </div>
 
-                <div class="grid grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Mã BTP (Lot)</label>
-                        <div class="flex gap-2">
-                            <input id="maBTP" type="text" class="flex-[2.5] px-4 py-3 border rounded-xl font-mono text-base" placeholder="D009MT15066-02-0K" oninput="updatePreview()">
-                            <button onclick="openLotModal()" class="flex-1 px-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium flex items-center justify-center gap-2 text-sm">
-                                <i class="fas fa-history"></i> <span class="hidden sm:inline">Chọn Lot</span>
-                            </button>
-                        </div>
+        <!-- Tab 1: Nhập Thông Tin -->
+        <div id="content0">
+            <div class="grid grid-cols-12 gap-6">
+                <div class="col-span-12 lg:col-span-7 bg-white rounded-2xl shadow p-8">
+                    <h2 class="text-2xl font-semibold mb-6">Nhập Thông Tin</h2>
 
-                        <div class="grid grid-cols-2 gap-4 mt-4">
-                            <div>
-                                <label class="block text-sm font-medium mb-1">Quy Cách</label>
-                                <input id="quyCach" type="text" value="20kg" class="w-full px-4 py-3 border rounded-xl" oninput="updatePreview()">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Mã BTP (Lot)</label>
+                            <div class="flex gap-2">
+                                <input id="maBTP" type="text" class="flex-[2.5] px-4 py-3 border rounded-xl font-mono text-base" placeholder="D009MT15066-02-0K" oninput="updatePreview()">
+                                <button onclick="openLotModal()" class="flex-1 px-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium flex items-center justify-center gap-2 text-sm">
+                                    <i class="fas fa-history"></i> <span class="hidden sm:inline">Chọn Lot</span>
+                                </button>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4 mt-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Quy Cách</label>
+                                    <input id="quyCach" type="text" value="20kg" class="w-full px-4 py-3 border rounded-xl" oninput="updatePreview()">
+                                </div>
+                            </div>
+
+                            <div class="mt-6">
+                                <label class="block text-sm font-medium mb-1">VÙNG NGUYÊN LIỆU</label>
+                                <select id="vungNguyenLieu" class="w-full px-4 py-3 border rounded-xl" onchange="updatePreview()">
+                                    <option value="MT">MT - Miền Tây</option>
+                                    <option value="BP">BP - Bình Phước</option>
+                                    <option value="DN">DN - Đồng Nai</option>
+                                </select>
                             </div>
                         </div>
 
-                        <div class="mt-6">
-                            <label class="block text-sm font-medium mb-1">VÙNG NGUYÊN LIỆU</label>
-                            <select id="vungNguyenLieu" class="w-full px-4 py-3 border rounded-xl" onchange="updatePreview()">
-                                <option value="MT">MT - Miền Tây</option>
-                                <option value="BP">BP - Bình Phước</option>
-                                <option value="DN">DN - Đồng Nai</option>
-                            </select>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">SKU</label>
+                            <input id="sku" type="text" class="w-full px-4 py-3 border rounded-xl font-mono text-base" placeholder="TP101020203.01.001" oninput="updatePreview()">
+
+                            <label class="block text-sm font-medium mb-1 mt-4">Tên Thành Phẩm</label>
+                            <input id="tenTP" type="text" class="w-full px-4 py-3 border rounded-xl" placeholder="TP CẤP ĐÔNG SẦU RIÊNG..." oninput="updatePreview()">
                         </div>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium mb-1">SKU</label>
-                        <input id="sku" type="text" class="w-full px-4 py-3 border rounded-xl font-mono text-base" placeholder="TP101020203.01.001" oninput="updatePreview()">
-
-                        <label class="block text-sm font-medium mb-1 mt-4">Tên Thành Phẩm</label>
-                        <input id="tenTP" type="text" class="w-full px-4 py-3 border rounded-xl" placeholder="TP CẤP ĐÔNG SẦU RIÊNG..." oninput="updatePreview()">
+                    <div class="grid grid-cols-4 gap-4 mt-6">
+                        <div><label class="block text-sm font-medium mb-1">STT in đầu</label><input id="sttDau" type="number" value="1" class="w-full px-4 py-3 border rounded-xl" oninput="updateSttCuoi()"></div>
+                        <div><label class="block text-sm font-medium mb-1">Số lượng tem</label><input id="soLuongTem" type="number" value="1" min="1" class="w-full px-4 py-3 border rounded-xl font-semibold" oninput="updateSttCuoi()"></div>
+                        <div><label class="block text-sm font-medium mb-1">STT in cuối</label><input id="sttCuoi" type="number" value="1" class="w-full px-4 py-3 border rounded-xl bg-gray-50" readonly></div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Ngày SX</label>
+                            <input id="ngaySX" type="date" class="w-full px-4 py-3 border rounded-xl" onchange="updatePreview()">
+                        </div>
                     </div>
-                </div>
 
-                <div class="grid grid-cols-4 gap-4 mt-6">
-                    <div><label class="block text-sm font-medium mb-1">STT in đầu</label><input id="sttDau" type="number" value="1" class="w-full px-4 py-3 border rounded-xl" oninput="updateSttCuoi()"></div>
-                    <div><label class="block text-sm font-medium mb-1">Số lượng tem</label><input id="soLuongTem" type="number" value="1" min="1" class="w-full px-4 py-3 border rounded-xl font-semibold" oninput="updateSttCuoi()"></div>
-                    <div><label class="block text-sm font-medium mb-1">STT in cuối</label><input id="sttCuoi" type="number" value="1" class="w-full px-4 py-3 border rounded-xl bg-gray-50" readonly></div>
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Ngày SX</label>
-                        <input id="ngaySX" type="date" class="w-full px-4 py-3 border rounded-xl" onchange="updatePreview()">
+                    <div class="mt-6">
+                        <label class="block text-sm font-medium mb-1">Ngày ĐG (không sửa)</label>
+                        <input id="ngayDG" type="date" readonly class="w-full px-4 py-3 border bg-gray-100 rounded-xl">
                     </div>
-                </div>
 
-                <div class="mt-6">
-                    <label class="block text-sm font-medium mb-1">Ngày ĐG (không sửa)</label>
-                    <input id="ngayDG" type="date" readonly class="w-full px-4 py-3 border bg-gray-100 rounded-xl">
-                </div>
+                    <div class="mt-8 flex gap-4">
+                        <button onclick="loadFromGrid()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-xl font-medium">
+                            <i class="fas fa-search"></i> Chọn từ Danh sách
+                        </button>
+                        <button onclick="resetSTT()" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-medium">
+                            <i class="fas fa-undo"></i> Reset STT
+                        </button>
+                    </div>
 
-                <div class="mt-8 flex gap-4">
-                    <button onclick="loadFromGrid()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-xl font-medium">
-                        <i class="fas fa-search"></i> Chọn từ Danh sách
-                    </button>
-                    <button onclick="resetSTT()" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-medium">
-                        <i class="fas fa-undo"></i> Reset STT
+                    <button onclick="printLabels()" class="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
+                        <i class="fas fa-print"></i> IN NHÃN
                     </button>
                 </div>
 
-                <button onclick="printLabels()" class="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
-                    <i class="fas fa-print"></i> IN NHÃN
-                </button>
+                <!-- Preview -->
+                <div class="col-span-12 lg:col-span-5 space-y-6">
+                    <div class="bg-white rounded-2xl shadow p-6">
+                        <h2 class="text-xl font-semibold mb-4">Xem Trước Nhãn (90mm × 60mm)</h2>
+                        <div class="flex justify-center bg-gray-50 p-6 rounded-xl">
+                            <div id="previewLabel" class="label-preview"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow overflow-hidden">
+                        <div class="px-6 py-4 bg-gray-50 border-b flex justify-between items-center">
+                            <h3 class="font-semibold">Danh sách Thành Phẩm</h3>
+                            <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl flex items-center gap-2 text-sm">
+                                <i class="fas fa-upload"></i> Import Excel
+                                <input type="file" id="excelFile" accept=".xlsx,.xls" class="hidden" onchange="importExcel(this)">
+                            </label>
+                        </div>
+                        <div class="p-4">
+                            <input id="searchInput" type="text" placeholder="Tìm mã SP hoặc tên..." class="w-full px-4 py-3 border rounded-xl" onkeyup="filterGrid()">
+                        </div>
+                        <div class="max-h-96 overflow-auto">
+                            <table id="dataGrid" class="w-full text-sm">
+                                <thead class="bg-gray-50 sticky top-0">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left">STT</th>
+                                        <th class="px-4 py-3 text-left">Mã SP</th>
+                                        <th class="px-4 py-3 text-left">Tên TP</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="gridBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Báo Cáo -->
+        <div id="content1" class="hidden">
+            <div class="report-card mb-8">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <div class="text-sm opacity-75">BÁO CÁO SẢN LƯỢNG IN</div>
+                        <div id="totalTem" class="text-6xl font-bold mt-1">0</div>
+                        <div class="text-sm opacity-75">TEM ĐẠT</div>
+                    </div>
+                    <div class="text-right">
+                        <div id="temHong" class="text-4xl font-bold text-red-400">0</div>
+                        <div class="text-sm opacity-75">TEM HỒNG</div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-8">
+                    <div>
+                        <div id="lastSTT" class="text-5xl font-bold text-emerald-400">0</div>
+                        <div class="text-sm opacity-75">STT CUỐI</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm opacity-75">CẬP NHẬT LẦN CUỐI</div>
+                        <div id="lastUpdate" class="font-mono text-lg">Chưa có dữ liệu</div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Preview -->
-            <div class="col-span-12 lg:col-span-5 space-y-6">
-                <div class="bg-white rounded-2xl shadow p-6">
-                    <h2 class="text-xl font-semibold mb-4">Xem Trước Nhãn (90mm × 60mm)</h2>
-                    <div class="flex justify-center bg-gray-50 p-6 rounded-xl">
-                        <div id="previewLabel" class="label-preview"></div>
+            <div class="bg-white rounded-2xl shadow p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">Lịch sử in nhãn</h3>
+                    <div class="flex gap-3">
+                        <button onclick="toggleSelectAll()" id="selectAllBtn"
+                                class="bg-gray-600 hover:bg-gray-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 text-sm">
+                            <i class="fas fa-check-square"></i> Chọn tất cả
+                        </button>
+                        <button onclick="deleteSelectedHistory()" 
+                                class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl flex items-center gap-2">
+                            <i class="fas fa-trash"></i> Xóa đã chọn
+                        </button>
+                        <button onclick="exportReportExcel()" 
+                                class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl flex items-center gap-2">
+                            <i class="fas fa-file-excel"></i> Tạo Excel Báo Cáo
+                        </button>
                     </div>
                 </div>
-
-                <div class="bg-white rounded-2xl shadow overflow-hidden">
-                    <div class="px-6 py-4 bg-gray-50 border-b flex justify-between items-center">
-                        <h3 class="font-semibold">Danh sách Thành Phẩm</h3>
-                        <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl flex items-center gap-2 text-sm">
-                            <i class="fas fa-upload"></i> Import Excel
-                            <input type="file" id="excelFile" accept=".xlsx,.xls" class="hidden" onchange="importExcel(this)">
-                        </label>
-                    </div>
-                    <div class="p-4">
-                        <input id="searchInput" type="text" placeholder="Tìm mã SP hoặc tên..." class="w-full px-4 py-3 border rounded-xl" onkeyup="filterGrid()">
-                    </div>
-                    <div class="max-h-96 overflow-auto">
-                        <table id="dataGrid" class="w-full text-sm">
-                            <thead class="bg-gray-50 sticky top-0">
-                                <tr>
-                                    <th class="px-4 py-3 text-left">STT</th>
-                                    <th class="px-4 py-3 text-left">Mã SP</th>
-                                    <th class="px-4 py-3 text-left">Tên TP</th>
-                                </tr>
-                            </thead>
-                            <tbody id="gridBody"></tbody>
-                        </table>
-                    </div>
+                <div class="max-h-[500px] overflow-auto">
+                    <table id="historyTable" class="w-full text-sm"></table>
                 </div>
             </div>
         </div>
@@ -252,6 +319,8 @@
 
         let products = [];
         let selectedIndex = -1;
+        let printHistory = [];
+        let selectedHistoryIds = new Set();
         const counterRef = db.collection("settings").doc("stt_counter");
         const RESET_PASSWORD = "20695";
 
@@ -279,6 +348,155 @@
                 });
                 populateGrid();
             });
+        }
+
+        function loadPrintHistory() {
+            db.collection("printHistory").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
+                printHistory = [];
+                let total = 0;
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    data.id = doc.id;
+                    printHistory.push(data);
+                    total += (data.soLuong || 0);
+                });
+
+                document.getElementById('totalTem').textContent = total.toLocaleString('vi-VN');
+                document.getElementById('lastSTT').textContent = printHistory.length ? printHistory[0].sttCuoi : 0;
+                document.getElementById('temHong').textContent = "0";
+                document.getElementById('lastUpdate').textContent = printHistory.length ? 
+                    new Date(printHistory[0].timestamp?.toDate() || Date.now()).toLocaleString('vi-VN') : "Chưa có";
+
+                renderHistoryTable();
+            });
+        }
+
+        function renderHistoryTable() {
+            let html = `
+                <thead class="bg-gray-50 sticky top-0">
+                    <tr>
+                        <th class="px-4 py-3 text-center w-10"><input type="checkbox" id="headerCheckbox" onchange="toggleAllCheckboxes(this)"></th>
+                        <th class="px-4 py-3 text-left">Thời gian</th>
+                        <th class="px-4 py-3 text-left">Mã Lot</th>
+                        <th class="px-4 py-3 text-left">SKU</th>
+                        <th class="px-4 py-3 text-left">Tên TP</th>
+                        <th class="px-4 py-3 text-center">Số lượng</th>
+                        <th class="px-4 py-3 text-right">Quy Cách</th>
+                        <th class="px-4 py-3 text-right">Tổng KL (kg)</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            
+            printHistory.forEach(item => {
+                const kg = parseFloat(item.quyCach) || 20;
+                const tongKL = (item.soLuong * kg).toFixed(0);
+                const isChecked = selectedHistoryIds.has(item.id);
+                
+                html += `
+                    <tr class="border-b hover:bg-gray-50" data-id="${item.id}">
+                        <td class="px-4 py-3 text-center">
+                            <input type="checkbox" class="history-checkbox" 
+                                   onchange="toggleHistorySelection('${item.id}', this)"
+                                   ${isChecked ? 'checked' : ''}>
+                        </td>
+                        <td class="px-4 py-3 text-xs">${new Date(item.timestamp?.toDate() || item.timestamp).toLocaleString('vi-VN')}</td>
+                        <td class="px-4 py-3 font-mono">${item.maBTP || ''}</td>
+                        <td class="px-4 py-3 font-mono">${item.sku || ''}</td>
+                        <td class="px-4 py-3">${item.tenTP || ''}</td>
+                        <td class="px-4 py-3 text-center font-semibold">${item.soLuong || 0}</td>
+                        <td class="px-4 py-3 text-right">${item.quyCach}</td>
+                        <td class="px-4 py-3 text-right font-bold">${tongKL} kg</td>
+                    </tr>`;
+            });
+            html += `</tbody>`;
+            document.getElementById('historyTable').innerHTML = html;
+        }
+
+        function toggleHistorySelection(id, checkbox) {
+            if (checkbox.checked) {
+                selectedHistoryIds.add(id);
+            } else {
+                selectedHistoryIds.delete(id);
+            }
+        }
+
+        function toggleAllCheckboxes(headerCheckbox) {
+            const checkboxes = document.querySelectorAll('.history-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = headerCheckbox.checked;
+                const id = cb.closest('tr').dataset.id;
+                if (headerCheckbox.checked) selectedHistoryIds.add(id);
+                else selectedHistoryIds.delete(id);
+            });
+        }
+
+        function toggleSelectAll() {
+            const header = document.getElementById('headerCheckbox');
+            if (header) {
+                header.checked = !header.checked;
+                toggleAllCheckboxes(header);
+            }
+        }
+
+        async function deleteSelectedHistory() {
+            if (selectedHistoryIds.size === 0) {
+                alert("Vui lòng tích chọn ít nhất một bản ghi để xóa!");
+                return;
+            }
+            if (!confirm(`Bạn có chắc muốn xóa ${selectedHistoryIds.size} bản ghi lịch sử? Hành động này không thể hoàn tác.`)) {
+                return;
+            }
+
+            try {
+                const batch = db.batch();
+                selectedHistoryIds.forEach(id => {
+                    const docRef = db.collection("printHistory").doc(id);
+                    batch.delete(docRef);
+                });
+
+                await batch.commit();
+                alert(`✅ Đã xóa ${selectedHistoryIds.size} bản ghi thành công!`);
+                selectedHistoryIds.clear();
+            } catch (error) {
+                console.error(error);
+                alert("Lỗi khi xóa: " + error.message);
+            }
+        }
+
+        function exportReportExcel() {
+            if (printHistory.length === 0) return alert("Chưa có dữ liệu in nào!");
+            
+            const data = printHistory.map(item => {
+                const kg = parseFloat(item.quyCach) || 20;
+                return {
+                    "Thời gian": new Date(item.timestamp?.toDate() || item.timestamp).toLocaleString('vi-VN'),
+                    "Mã Lot": item.maBTP,
+                    "SKU": item.sku,
+                    "Tên Thành Phẩm": item.tenTP,
+                    "Số lượng tem": item.soLuong,
+                    "Quy Cách": item.quyCach,
+                    "Tổng khối lượng (kg)": item.soLuong * kg
+                };
+            });
+
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "BaoCaoInNhãn");
+            XLSX.writeFile(wb, `BaoCao_SanLuong_In_${new Date().toISOString().slice(0,10)}.xlsx`);
+        }
+
+        function logPrint() {
+            const data = {
+                maBTP: document.getElementById('maBTP').value || '',
+                sku: document.getElementById('sku').value || '',
+                tenTP: document.getElementById('tenTP').value || '',
+                quyCach: document.getElementById('quyCach').value || '20kg',
+                soLuong: parseInt(document.getElementById('soLuongTem').value) || 1,
+                sttDau: parseInt(document.getElementById('sttDau').value),
+                sttCuoi: parseInt(document.getElementById('sttCuoi').value),
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            db.collection("printHistory").add(data);
         }
 
         async function importExcel(input) {
@@ -370,7 +588,6 @@
 
             preview.innerHTML = `
                 <div style="font-family: Tahoma, Arial, sans-serif; font-size: 9.0pt; font-weight: 700; line-height: 1.15; padding: 3px 5px; height: 100%; letter-spacing: -0.2px;">
-                    <!-- SKU và Lot đã giảm font size -->
                     <div style="display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 3px; font-size: 7.8pt;">
                         <div>SKU: ${sku}</div>
                         <div>Lot: ${maBTP}</div>
@@ -430,6 +647,8 @@
             win.document.close();
             setTimeout(() => win.print(), 600);
 
+            logPrint();
+
             const nextSTT = sttCuoi + 1;
             document.getElementById('sttDau').value = nextSTT;
             saveLastSTT(nextSTT);
@@ -451,12 +670,23 @@
             }
         }
 
+        function switchTab(tab) {
+            document.getElementById('content0').classList.toggle('hidden', tab !== 0);
+            document.getElementById('content1').classList.toggle('hidden', tab !== 1);
+            
+            document.getElementById('tab0').classList.toggle('border-blue-600', tab === 0);
+            document.getElementById('tab0').classList.toggle('text-blue-600', tab === 0);
+            document.getElementById('tab1').classList.toggle('border-blue-600', tab === 1);
+            document.getElementById('tab1').classList.toggle('text-blue-600', tab === 1);
+        }
+
         window.onload = () => {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('ngaySX').value = today;
             document.getElementById('ngayDG').value = today;
 
             loadLastSTT();
+            loadPrintHistory();
             setTimeout(() => {
                 loadProductsFromFirebase();
                 updatePreview();
