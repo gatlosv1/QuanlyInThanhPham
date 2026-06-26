@@ -74,6 +74,7 @@
                                     <option value="DN">DN - Đồng Nai</option>
                                     <option value="DL">DL - DakLak</option>
                                 </select>
+                                
                             </div>
                         </div>
 
@@ -97,8 +98,8 @@
                     </div>
 
                     <div class="mt-6">
-                        <label class="block text-sm font-medium mb-1">Ngày ĐG (không sửa)</label>
-                        <input id="ngayDG" type="date" readonly class="w-full px-4 py-3 border bg-gray-100 rounded-xl">
+                        <label class="block text-sm font-medium mb-1">Ngày ĐG </label>
+                        <input id="ngayDG" type="date" class="w-full px-4 py-3 border rounded-xl" onchange="updatePreview()" disabled>
                     </div>
 
                     <div class="mt-8 flex gap-4">
@@ -117,7 +118,7 @@
                         </button>
                         <button onclick="printLabels(true)" 
                                 class="bg-orange-600 hover:bg-orange-700 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
-                            <i class="fas fa-redo"></i> IN LẠI (không tăng số)
+                            <i class="fas fa-redo"></i> IN LẠI 
                         </button>
                     </div>
                 </div>
@@ -649,16 +650,33 @@
             });
         }
 
+        function getRegionFromLot(lot) {
+            if (!lot) return null;
+            const upperLot = lot.toUpperCase();
+            if (upperLot.includes('BP')) return 'BP';
+            if (upperLot.includes('DN')) return 'DN';
+            if (upperLot.includes('DL')) return 'DL';
+            if (upperLot.includes('MT')) return 'MT';
+            return null;
+        }
+
         function updatePreview() {
             const preview = document.getElementById('previewLabel');
             const sku = document.getElementById('sku').value || 'TP101020203.01.001';
             const maBTP = document.getElementById('maBTP').value || 'D009MT15066-02-0K';
             const tenTP = document.getElementById('tenTP').value || 'TP CẤP ĐÔNG SẦU RIÊNG...';
             const quyCach = document.getElementById('quyCach').value || '20kg';
-            const vungCode = document.getElementById('vungNguyenLieu').value || 'MT';
-            const vungFull = vungCode === 'BP' ? 'Bình Phước' : vungCode === 'DN' ? 'Đồng Nai' : 'Miền Tây';
+            const regionFromLot = getRegionFromLot(maBTP);
+            const regionSelect = document.getElementById('vungNguyenLieu');
+            if (regionFromLot && regionSelect && regionSelect.value !== regionFromLot) {
+                regionSelect.value = regionFromLot;
+            }
+            const vungCode = regionSelect ? regionSelect.value : 'MT';
+            const vungFull = vungCode === 'BP' ? 'Bình Phước' : vungCode === 'DN' ? 'Đồng Nai' : vungCode === 'DL' ? 'DakLak' : 'Miền Tây';
             const ngaySX = document.getElementById('ngaySX').value ? 
                 document.getElementById('ngaySX').value.split('-').reverse().join('/') : '22/06/2026';
+            const ngayDG = document.getElementById('ngayDG').value ? 
+                document.getElementById('ngayDG').value.split('-').reverse().join('/') : ngaySX;
 
             preview.innerHTML = `
                 <div style="font-family: Tahoma, Arial, sans-serif; font-size: 9.0pt; font-weight: 700; line-height: 1.15; padding: 3px 5px; height: 100%; letter-spacing: -0.2px;">
@@ -684,7 +702,7 @@
                     <div style="margin-bottom: 3px; font-weight: 700;"><strong>VÙNG NGUYÊN LIỆU</strong><br>${vungFull}</div>
                     <div style="display: flex; justify-content: space-between; font-size: 9.0pt; margin-top: 5px;">
                         <div>Ngày SX: ${ngaySX}</div>
-                        <div>Ngày ĐG: ${ngaySX}</div>
+                        <div>Ngày ĐG: ${ngayDG}</div>
                     </div>
                 </div>
             `;
