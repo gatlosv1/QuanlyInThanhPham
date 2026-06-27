@@ -24,7 +24,7 @@
         .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 2000; align-items: center; justify-content: center; }
         .modal-content { background: white; border-radius: 12px; width: 90%; max-width: 620px; max-height: 85vh; overflow: hidden; }
         .report-card {
-            background: linear-gradient(135deg, #1f2937, #111827);
+            background: linear-gradient(135deg, #121f32, #111827);
             color: white;
             border-radius: 16px;
             padding: 24px;
@@ -73,7 +73,7 @@
                                     <option value="MT">MT - Miền Tây</option>
                                     <option value="BP">BP - Bình Phước</option> 
                                     <option value="DN">DN - Đồng Nai</option>
-                                    <option value="DL">DL - DakLak</option>
+                                    <option value="DL">DL - Đắk Lắk</option>
                                     <option value="LK">LK - Long Khánh</option>
                                 </select>
                                 
@@ -636,6 +636,7 @@
                 </style>
             `;
 
+            updatePreview();
             const base = document.getElementById('previewLabel').innerHTML;
             for (let i = 0; i < count; i++) {
                 let html = base.replace(/5200/g, sttDau + i);
@@ -745,32 +746,38 @@
             if (!lot) return null;
             const upperLot = lot.toUpperCase();
             if (upperLot.includes('BP')) return 'BP';
-            if (upperLot.includes('DN')) return 'DN';
-            if (upperLot.includes('DL')) return 'DL';
-            if (upperLot.includes('MT')) return 'MT';
+            if (upperLot.includes('DN') || upperLot.includes('DONG NAI')) return 'DN';
+            if (upperLot.includes('DL') || upperLot.includes('DAKLAK') || upperLot.includes('DAK LAK')) return 'DL';
+            if (upperLot.includes('LK') || upperLot.includes('LONGKHANH') || upperLot.includes('LONG KHANH')) return 'LK';
+            if (upperLot.includes('MT') || upperLot.includes('MIEN TAY')) return 'MT';
             return null;
         }
 
-        // ==================== CẬP NHẬT XEM TRƯỚC NHÃN ====================
-        function updatePreview() {
-            const preview = document.getElementById('previewLabel');
+        function applyRegionFromLot() {
+            const regionSelect = document.getElementById('vungNguyenLieu');
+            if (!regionSelect) return regionSelect ? regionSelect.value : 'MT';
+
+            const lotValue = document.getElementById('maBTP').value || '';
+            const regionFromLot = getRegionFromLot(lotValue);
+            if (regionFromLot) {
+                regionSelect.value = regionFromLot;
+            }
+            return regionSelect.value || 'MT';
+        }
+
+        function buildLabelHtml(sttValue = '5200') {
             const sku = document.getElementById('sku').value || 'TP101020203.01.001';
             const maBTP = document.getElementById('maBTP').value || 'D009MT15066-02-0K';
             const tenTP = document.getElementById('tenTP').value || 'TP CẤP ĐÔNG SẦU RIÊNG...';
             const quyCach = document.getElementById('quyCach').value || '20kg';
-            const regionFromLot = getRegionFromLot(maBTP);
-            const regionSelect = document.getElementById('vungNguyenLieu');
-            if (regionFromLot && regionSelect && regionSelect.value !== regionFromLot) {
-                regionSelect.value = regionFromLot;
-            }
-            const vungCode = regionSelect ? regionSelect.value : 'MT';
-            const vungFull = vungCode === 'BP' ? 'Bình Phước' : vungCode === 'DN' ? 'Đồng Nai' : vungCode === 'DL' ? 'DakLak' : 'Miền Tây';
+            const vungCode = applyRegionFromLot();
+            const vungFull = vungCode === 'BP' ? 'Bình Phước' : vungCode === 'DN' ? 'Đồng Nai' : vungCode === 'DL' ? 'Đắk Lắk' : vungCode === 'LK' ? 'Long Khánh' : 'Miền Tây';
             const ngaySX = document.getElementById('ngaySX').value ? 
                 document.getElementById('ngaySX').value.split('-').reverse().join('/') : '22/06/2026';
             const ngayDG = document.getElementById('ngayDG').value ? 
                 document.getElementById('ngayDG').value.split('-').reverse().join('/') : ngaySX;
 
-            preview.innerHTML = `
+            return `
                 <div style="font-family: Tahoma, Arial, sans-serif; font-size: 9.0pt; font-weight: 700; line-height: 1.15; padding: 3px 5px; height: 100%; letter-spacing: -0.2px;">
                     <div style="display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 3px; font-size: 7.8pt;">
                         <div>SKU: ${sku}</div>
@@ -788,7 +795,7 @@
                         <div><strong>KHÁCH HÀNG/CUSTOMER</strong><br>CHANH THU GROUP</div>
                         <div style="text-align: right;">
                             <strong>STT/INDEX</strong><br>
-                            <span style="font-size: 15.8pt; font-weight: 800;">5200</span>
+                            <span style="font-size: 15.8pt; font-weight: 800;">${sttValue}</span>
                         </div>
                     </div>
                     <div style="margin-bottom: 3px; font-weight: 700;"><strong>VÙNG NGUYÊN LIỆU</strong><br>${vungFull}</div>
@@ -798,7 +805,15 @@
                     </div>
                 </div>
             `;
+        }
 
+        // ==================== CẬP NHẬT XEM TRƯỚC NHÃN ====================
+        function updatePreview() {
+            applyRegionFromLot();
+            const preview = document.getElementById('previewLabel');
+            if (preview) {
+                preview.innerHTML = buildLabelHtml();
+            }
             scheduleLoadProductSTT();
         }
 
