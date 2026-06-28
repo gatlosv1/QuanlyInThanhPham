@@ -753,14 +753,17 @@
             return null;
         }
 
+        let lastAutoRegionLot = '';
+
         function applyRegionFromLot() {
             const regionSelect = document.getElementById('vungNguyenLieu');
             if (!regionSelect) return regionSelect ? regionSelect.value : 'MT';
 
             const lotValue = document.getElementById('maBTP').value || '';
             const regionFromLot = getRegionFromLot(lotValue);
-            if (regionFromLot) {
+            if (regionFromLot && lotValue !== lastAutoRegionLot) {
                 regionSelect.value = regionFromLot;
+                lastAutoRegionLot = lotValue;
             }
             return regionSelect.value || 'MT';
         }
