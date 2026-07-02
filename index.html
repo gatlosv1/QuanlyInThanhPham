@@ -365,6 +365,12 @@
         const RESET_PASSWORD = "20695";
         let lastLoadedProductKey = '';
         let productSttLoadTimer = null;
+        let isPrinting = false;
+
+        function toPositiveInt(value, fallback = 1) {
+            const num = Number(value);
+            return Number.isFinite(num) && num > 0 ? Math.floor(num) : fallback;
+        }
 
         function getProductKey() {
             const sku = (document.getElementById('sku').value || '').trim();
@@ -375,6 +381,7 @@
         }
 
         function scheduleLoadProductSTT() {
+            if (isPrinting) return;
             clearTimeout(productSttLoadTimer);
             productSttLoadTimer = setTimeout(() => {
                 loadProductSTT();
@@ -385,13 +392,14 @@
             const productKey = getProductKey();
             if (!productKey || (!force && productKey === lastLoadedProductKey)) return;
 
-            lastLoadedProductKey = productKey;
             try {
                 const doc = await db.collection("productCounters").doc(productKey).get();
                 const saved = doc.exists ? doc.data() : null;
-                const nextStart = saved && Number.isFinite(saved.nextSTT) ? saved.nextSTT : 1;
+                const currentSttDau = toPositiveInt(document.getElementById('sttDau').value, 1);
+                const nextStart = toPositiveInt(saved ? saved.nextSTT : null, currentSttDau);
                 document.getElementById('sttDau').value = nextStart;
                 updateSttCuoi();
+                lastLoadedProductKey = productKey;
             } catch (e) {
                 console.error(e);
             }
@@ -624,11 +632,15 @@
 
         // ==================== IN NHÃN THỰC TẾ ====================
         async function printLabels(isReprint = false) {
+            if (isPrinting) return;
+
             const sttDau = parseInt(document.getElementById('sttDau').value) || 1;
             const sttCuoi = parseInt(document.getElementById('sttCuoi').value) || 1;
             const count = Math.max(1, sttCuoi - sttDau + 1);
 
-            let printContent = `
+            isPrinting = true;
+
+            const printStyles = `
                 <style>
                     @page { size: 90mm 60mm; margin: 0mm !important; }
                     body { margin: 0 !important; padding: 0 !important; font-family: Tahoma, Arial, sans-serif; font-weight: 700; letter-spacing: -0.2px; }
@@ -636,32 +648,47 @@
                 </style>
             `;
 
-            updatePreview();
-            const base = document.getElementById('previewLabel').innerHTML;
-            for (let i = 0; i < count; i++) {
-                let html = base.replace(/5200/g, sttDau + i);
-                printContent += `<div class="label">${html}</div>`;
-            }
+            try {
+                const labelHtml = [];
+                for (let i = 0; i < count; i++) {
+                    labelHtml.push(`<div class="label">${buildLabelHtml(sttDau + i)}</div>`);
+                }
 
-            const win = window.open('', '_blank');
-            win.document.write(`<html><head><title>${isReprint ? 'In Lại' : 'In Nhãn'}</title></head><body>${printContent}</body></html>`);
-            win.document.close();
-            setTimeout(() => win.print(), 600);
+                const win = window.open('', '_blank');
+                if (!win) {
+                    alert('Không mở được cửa sổ in. Vui lòng cho phép popup và thử lại.');
+                    return;
+                }
 
-            if (!isReprint) {
-                await logPrint();
-                const nextSTT = sttCuoi + 1;
-                document.getElementById('sttDau').value = nextSTT;
-                await saveProductSTT(nextSTT, sttDau, sttCuoi);
-                updateSttCuoi();
-            } else {
-                alert(`✅ Đã in lại ${count} tem (KHÔNG ghi log - KHÔNG tăng tổng số lượng)`);
+                win.document.write(`<html><head><title>${isReprint ? 'In Lại' : 'In Nhãn'}</title>${printStyles}</head><body>${labelHtml.join('')}</body></html>`);
+                win.document.close();
+                win.onload = () => win.print();
+
+                if (!isReprint) {
+                    const nextSTT = sttCuoi + 1;
+                    document.getElementById('sttDau').value = nextSTT;
+                    updateSttCuoi();
+
+                    await Promise.allSettled([
+                        logPrint(),
+                        saveProductSTT(nextSTT, sttDau, sttCuoi)
+                    ]);
+                } else {
+                    alert(`✅ Đã in lại ${count} tem (KHÔNG ghi log - KHÔNG tăng tổng số lượng)`);
+                }
+            } finally {
+                isPrinting = false;
             }
         }
 
         
         // ==================== IMPORT DỮ LIỆU TỪ EXCEL ====================
         async function importExcel(input) {
+            if (!firebaseReady || !db) {
+                alert('Database chưa sẵn sàng. Vui lòng tải lại trang rồi thử lại.');
+                input.value = '';
+                return;
+            }
             const file = input.files[0];
             if (!file) return;
             const reader = new FileReader();
@@ -669,29 +696,61 @@
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
-                    const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
+                    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
+
+                    if (!rows.length) {
+                        alert('File Excel trống!');
+                        return;
+                    }
+
+                    const normalizeHeaderKey = (value) => String(value || '')
+                        .normalize('NFD')
+                        .replace(/[\u0300-\u036f]/g, '')
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]/g, '');
+
+                    const headerRow = (rows[0] || []).map(normalizeHeaderKey);
+                    const sttHeaderIndex = headerRow.findIndex(h => ['stt', 'sothutu'].includes(h));
+                    const maSpHeaderIndex = headerRow.findIndex(h => ['masp', 'sku', 'masanpham'].includes(h));
+                    const tenTpHeaderIndex = headerRow.findIndex(h => ['tentp', 'tenthanhpham'].includes(h));
+
+                    const hasHeader = maSpHeaderIndex !== -1 || tenTpHeaderIndex !== -1;
+                    const startRow = hasHeader ? 1 : 0;
+                    const sttIndex = sttHeaderIndex !== -1 ? sttHeaderIndex : 0;
+                    const defaultMaSpIndex = rows[0] && rows[0].length >= 3 ? 1 : 0;
+                    const defaultTenTpIndex = rows[0] && rows[0].length >= 3 ? 2 : 1;
+                    const maSpIndex = maSpHeaderIndex !== -1 ? maSpHeaderIndex : defaultMaSpIndex;
+                    const tenTpIndex = tenTpHeaderIndex !== -1 ? tenTpHeaderIndex : defaultTenTpIndex;
 
                     const newProducts = [];
-                    for (let i = 1; i < jsonData.length; i++) {
-                        const row = jsonData[i];
-                        if (!row[1]) continue;
+                    for (let i = startRow; i < rows.length; i++) {
+                        const row = rows[i] || [];
+                        const maSP = String(row[maSpIndex] || '').trim();
+                        const tenTP = String(row[tenTpIndex] || '').trim();
+                        if (!maSP) continue;
+
                         newProducts.push({
-                            stt: parseInt(row[0]) || i,
-                            maSP: String(row[1]).trim(),
-                            tenTP: String(row[2] || '').trim(),
+                            stt: parseInt(row[sttIndex], 10) || (newProducts.length + 1),
+                            maSP,
+                            tenTP,
                             timestamp: new Date().toISOString()
                         });
                     }
 
                     if (newProducts.length === 0) return alert("Không tìm thấy dữ liệu!");
                     if (confirm(`Import ${newProducts.length} sản phẩm?`)) {
-                        for (const p of newProducts) {
-                            await db.collection("thanhpham").add(p);
-                        }
+                        const batch = db.batch();
+                        newProducts.forEach((p) => {
+                            const ref = db.collection("thanhpham").doc();
+                            batch.set(ref, p);
+                        });
+                        await batch.commit();
                         alert(`✅ Import thành công!`);
                     }
                 } catch (err) {
                     alert("Lỗi: " + err.message);
+                } finally {
+                    input.value = '';
                 }
             };
             reader.readAsArrayBuffer(file);
