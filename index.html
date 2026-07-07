@@ -142,6 +142,16 @@
                                 <input type="file" id="excelFile" accept=".xlsx,.xls" class="hidden" onchange="importExcel(this)">
                             </label>
                         </div>
+                        <div class="p-4 border-b bg-emerald-50/40">
+                            <div class="grid grid-cols-12 gap-2">
+                                <input id="addStt" type="number" min="1" placeholder="STT" class="col-span-2 px-3 py-2 border rounded-xl">
+                                <input id="addSku" type="text" placeholder="Mã SKU" class="col-span-4 px-3 py-2 border rounded-xl font-mono">
+                                <input id="addTenTP" type="text" placeholder="Tên TP" class="col-span-4 px-3 py-2 border rounded-xl">
+                                <button onclick="addThanhPhamManual()" class="col-span-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+                                    <i class="fas fa-plus"></i> Thêm
+                                </button>
+                            </div>
+                        </div>
                         <div class="p-4">
                             <input id="searchInput" type="text" placeholder="Tìm mã SP hoặc tên..." class="w-full px-4 py-3 border rounded-xl" onkeyup="filterGrid()">
                         </div>
@@ -152,6 +162,7 @@
                                         <th class="px-4 py-3 text-left">STT</th>
                                         <th class="px-4 py-3 text-left">Mã SP</th>
                                         <th class="px-4 py-3 text-left">Tên TP</th>
+                                        <th class="px-4 py-3 text-center">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody id="gridBody"></tbody>
@@ -363,9 +374,20 @@
         let printHistory = [];
         let selectedHistoryIds = new Set();
         const RESET_PASSWORD = "20695";
+        const PRODUCT_ACTION_PASSWORD = "200695";
         let lastLoadedProductKey = '';
         let productSttLoadTimer = null;
         let isPrinting = false;
+
+        function verifyProductActionPassword() {
+            const password = prompt('Nhập mật khẩu để thao tác danh sách thành phẩm:');
+            if (password === null) return false;
+            if (password !== PRODUCT_ACTION_PASSWORD) {
+                alert('Mật khẩu sai!');
+                return false;
+            }
+            return true;
+        }
 
         function toPositiveInt(value, fallback = 1) {
             const num = Number(value);
@@ -756,12 +778,126 @@
             reader.readAsArrayBuffer(file);
         }
 
+        // ==================== THÊM THÀNH PHẨM TỪ FORM HIỆN TẠI ====================
+        async function addThanhPhamFromForm() {
+            if (!verifyProductActionPassword()) return;
+
+            if (!firebaseReady || !db) {
+                alert('Database chưa sẵn sàng. Vui lòng tải lại trang rồi thử lại.');
+                return;
+            }
+
+            const maSP = String(document.getElementById('sku').value || '').trim();
+            const tenTP = String(document.getElementById('tenTP').value || '').trim();
+
+            if (!tenTP) {
+                alert('Vui lòng nhập Tên Thành Phẩm trước khi thêm!');
+                return;
+            }
+
+            try {
+                if (maSP) {
+                    const existed = await db.collection('thanhpham').where('maSP', '==', maSP).limit(1).get();
+
+                    if (!existed.empty) {
+                        const doc = existed.docs[0];
+                        await db.collection('thanhpham').doc(doc.id).set({
+                            maSP,
+                            tenTP,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        }, { merge: true });
+                        alert('✅ Đã cập nhật thành phẩm đã tồn tại trong danh sách!');
+                        return;
+                    }
+                }
+
+                const maxStt = products.reduce((max, p) => {
+                    const current = parseInt(p.stt, 10) || 0;
+                    return current > max ? current : max;
+                }, 0);
+
+                await db.collection('thanhpham').add({
+                    stt: maxStt + 1,
+                    maSP,
+                    tenTP,
+                    timestamp: new Date().toISOString(),
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                alert('✅ Đã thêm thành phẩm vào danh sách!');
+            } catch (error) {
+                alert('Lỗi khi thêm thành phẩm: ' + error.message);
+            }
+        }
+
+        async function addThanhPhamManual() {
+            if (!verifyProductActionPassword()) return;
+
+            if (!firebaseReady || !db) {
+                alert('Database chưa sẵn sàng. Vui lòng tải lại trang rồi thử lại.');
+                return;
+            }
+
+            const stt = parseInt(document.getElementById('addStt').value, 10);
+            const maSP = String(document.getElementById('addSku').value || '').trim();
+            const tenTP = String(document.getElementById('addTenTP').value || '').trim();
+
+            if (!Number.isInteger(stt) || stt <= 0) {
+                alert('Vui lòng nhập STT hợp lệ (> 0)!');
+                return;
+            }
+            if (!tenTP) {
+                alert('Vui lòng nhập tên TP!');
+                return;
+            }
+
+            try {
+                if (maSP) {
+                    const existed = await db.collection('thanhpham').where('maSP', '==', maSP).limit(1).get();
+                    if (!existed.empty) {
+                        const doc = existed.docs[0];
+                        await db.collection('thanhpham').doc(doc.id).set({
+                            stt,
+                            maSP,
+                            tenTP,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        }, { merge: true });
+                        alert('✅ SKU đã tồn tại, đã cập nhật STT và Tên TP!');
+                    } else {
+                        await db.collection('thanhpham').add({
+                            stt,
+                            maSP,
+                            tenTP,
+                            timestamp: new Date().toISOString(),
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        alert('✅ Đã thêm thành phẩm vào danh sách!');
+                    }
+                } else {
+                    await db.collection('thanhpham').add({
+                        stt,
+                        maSP,
+                        tenTP,
+                        timestamp: new Date().toISOString(),
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    alert('✅ Đã thêm thành phẩm vào danh sách!');
+                }
+
+                document.getElementById('addStt').value = '';
+                document.getElementById('addSku').value = '';
+                document.getElementById('addTenTP').value = '';
+            } catch (error) {
+                alert('Lỗi khi thêm thành phẩm: ' + error.message);
+            }
+        }
+
         // ==================== HIỂN THỊ DANH SÁCH SẢN PHẨM ====================
         function populateGrid() {
             const tbody = document.getElementById('gridBody');
             tbody.innerHTML = '';
             if (products.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="text-center py-8 text-gray-500">Chưa có dữ liệu.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-gray-500">Chưa có dữ liệu.</td></tr>`;
                 return;
             }
             products.forEach((prod, i) => {
@@ -769,10 +905,38 @@
                 tr.className = 'cursor-pointer border-b hover:bg-gray-50';
                 tr.innerHTML = `<td class="px-4 py-3">${prod.stt || ''}</td>
                                 <td class="px-4 py-3 font-mono">${prod.maSP || ''}</td>
-                                <td class="px-4 py-3">${prod.tenTP || ''}</td>`;
+                                <td class="px-4 py-3">${prod.tenTP || ''}</td>
+                                <td class="px-4 py-3 text-center">
+                                    <button onclick="deleteThanhPham('${prod.id || ''}', event)" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg text-xs font-medium">
+                                        <i class="fas fa-trash"></i> Xóa
+                                    </button>
+                                </td>`;
                 tr.onclick = () => selectRow(i, tr);
                 tbody.appendChild(tr);
             });
+        }
+
+        async function deleteThanhPham(id, event) {
+            event.stopPropagation();
+
+            if (!verifyProductActionPassword()) return;
+
+            if (!id) {
+                alert('Không tìm thấy mã bản ghi để xóa!');
+                return;
+            }
+            if (!firebaseReady || !db) {
+                alert('Database chưa sẵn sàng. Vui lòng tải lại trang rồi thử lại.');
+                return;
+            }
+            if (!confirm('Bạn có chắc muốn xóa thành phẩm này?')) return;
+
+            try {
+                await db.collection('thanhpham').doc(id).delete();
+                alert('✅ Đã xóa thành phẩm!');
+            } catch (error) {
+                alert('Lỗi khi xóa thành phẩm: ' + error.message);
+            }
         }
 
         // ==================== CHỌN DÒNG SẢN PHẨM ====================
@@ -828,7 +992,8 @@
         }
 
         function buildLabelHtml(sttValue = '5200') {
-            const sku = document.getElementById('sku').value || 'TP101020203.01.001';
+            const sku = (document.getElementById('sku').value || '').trim();
+            const hasSku = sku.length > 0;
             const maBTP = document.getElementById('maBTP').value || 'D009MT15066-02-0K';
             const tenTP = document.getElementById('tenTP').value || 'TP CẤP ĐÔNG SẦU RIÊNG...';
             const quyCach = document.getElementById('quyCach').value || '20kg';
@@ -842,7 +1007,7 @@
             return `
                 <div style="font-family: Tahoma, Arial, sans-serif; font-size: 9.0pt; font-weight: 700; line-height: 1.15; padding: 3px 5px; height: 100%; letter-spacing: -0.2px;">
                     <div style="display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 3px; font-size: 7.8pt;">
-                        <div>SKU: ${sku}</div>
+                        <div>${hasSku ? `Mã SKU: ${sku}` : ''}</div>
                         <div>Lot: ${maBTP}</div>
                     </div>
                     <div style="font-size: 12.8pt; font-weight: 800; text-align: center; margin: 4px 0 6px; line-height: 1.05;">
