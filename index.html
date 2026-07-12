@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -114,7 +116,7 @@
                         </button>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4 mt-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
                         <button onclick="printLabels(false)" 
                                 class="bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
                             <i class="fas fa-print"></i> IN NHÃN MỚI
@@ -122,6 +124,10 @@
                         <button onclick="printLabels(true)" 
                                 class="bg-orange-600 hover:bg-orange-700 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
                             <i class="fas fa-redo"></i> IN LẠI 
+                        </button>
+                        <button onclick="downloadLabelsPDF()" 
+                                class="bg-emerald-600 hover:bg-emerald-700 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
+                            <i class="fas fa-file-pdf"></i> TẢI PDF
                         </button>
                     </div>
                 </div>
@@ -636,15 +642,15 @@
         }
 
         // ==================== GHI LỊCH SỬ IN TEM ====================
-        async function logPrint() {
+        async function logPrint(printed = {}) {
             const data = {
                 maBTP: document.getElementById('maBTP').value || '',
                 sku: document.getElementById('sku').value || '',
                 tenTP: document.getElementById('tenTP').value || '',
                 quyCach: document.getElementById('quyCach').value || '20kg',
-                soLuong: parseInt(document.getElementById('soLuongTem').value) || 1,
-                sttDau: parseInt(document.getElementById('sttDau').value),
-                sttCuoi: parseInt(document.getElementById('sttCuoi').value),
+                soLuong: toPositiveInt(printed.soLuong, parseInt(document.getElementById('soLuongTem').value) || 1),
+                sttDau: toPositiveInt(printed.sttDau, parseInt(document.getElementById('sttDau').value) || 1),
+                sttCuoi: toPositiveInt(printed.sttCuoi, parseInt(document.getElementById('sttCuoi').value) || 1),
                 productKey: getProductKey(),
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             };
@@ -656,11 +662,6 @@
         // ==================== IN NHÃN THỰC TẾ ====================
         async function printLabels(isReprint = false) {
             if (isPrinting) return;
-
-            const sttDau = parseInt(document.getElementById('sttDau').value) || 1;
-            const sttCuoi = parseInt(document.getElementById('sttCuoi').value) || 1;
-            const count = Math.max(1, sttCuoi - sttDau + 1);
-
             isPrinting = true;
 
             const printStyles = `
@@ -672,6 +673,19 @@
             `;
 
             try {
+                const validated = getValidatedPrintInput();
+                let sttDau = validated.sttDau;
+                let sttCuoi = validated.sttCuoi;
+                const count = validated.soLuong;
+
+                if (!isReprint) {
+                    const reserved = await reservePrintRange(validated.sttDau, validated.soLuong);
+                    sttDau = reserved.sttDau;
+                    sttCuoi = reserved.sttCuoi;
+                    document.getElementById('sttDau').value = sttDau;
+                    document.getElementById('sttCuoi').value = sttCuoi;
+                }
+
                 const labelHtml = [];
                 for (let i = 0; i < count; i++) {
                     labelHtml.push(`<div class="label">${buildLabelHtml(sttDau + i)}</div>`);
@@ -689,16 +703,88 @@
 
                 if (!isReprint) {
                     const nextSTT = sttCuoi + 1;
-                    document.getElementById('sttDau').value = nextSTT;
-                    updateSttCuoi();
 
                     await Promise.allSettled([
-                        logPrint(),
+                        logPrint({ soLuong: count, sttDau, sttCuoi }),
                         saveProductSTT(nextSTT, sttDau, sttCuoi)
                     ]);
+
+                    document.getElementById('sttDau').value = nextSTT;
+                    updateSttCuoi();
                 } else {
                     alert(`✅ Đã in lại ${count} tem (KHÔNG ghi log - KHÔNG tăng tổng số lượng)`);
                 }
+            } catch (error) {
+                alert('Lỗi khi in: ' + (error.message || error));
+            } finally {
+                isPrinting = false;
+            }
+        }
+
+        async function downloadLabelsPDF() {
+            if (isPrinting) return;
+            isPrinting = true;
+
+            try {
+                const validated = getValidatedPrintInput();
+                const sttDau = validated.sttDau;
+                const soLuong = validated.soLuong;
+                const safeFileDate = new Date().toISOString().slice(0, 10);
+                const maBTP = (document.getElementById('maBTP').value || 'NO_LOT').replace(/[^a-zA-Z0-9_-]/g, '_');
+
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'mm',
+                    format: [90, 60]
+                });
+
+                const FAST_PDF_THRESHOLD = 80;
+                if (soLuong >= FAST_PDF_THRESHOLD) {
+                    for (let i = 0; i < soLuong; i++) {
+                        if (i > 0) pdf.addPage([90, 60], 'landscape');
+                        drawFastLabelToPdf(pdf, sttDau + i);
+
+                        if (i > 0 && i % 100 === 0) {
+                            await new Promise(resolve => setTimeout(resolve, 0));
+                        }
+                    }
+
+                    pdf.save(`Nhan_${maBTP}_${safeFileDate}.pdf`);
+                    alert(`✅ Đã tạo PDF nhanh ${soLuong} tem.`);
+                    return;
+                }
+
+                const temp = document.createElement('div');
+                temp.style.position = 'fixed';
+                temp.style.left = '-99999px';
+                temp.style.top = '0';
+                temp.style.padding = '0';
+                temp.style.background = '#fff';
+                document.body.appendChild(temp);
+
+                for (let i = 0; i < soLuong; i++) {
+                    temp.innerHTML = `<div class="label-preview">${buildLabelHtml(sttDau + i)}</div>`;
+                    const labelNode = temp.firstElementChild;
+                    const canvas = await html2canvas(labelNode, {
+                        scale: 1.4,
+                        backgroundColor: '#ffffff',
+                        useCORS: true
+                    });
+
+                    const imgData = canvas.toDataURL('image/png');
+                    if (i > 0) pdf.addPage([90, 60], 'landscape');
+                    pdf.addImage(imgData, 'PNG', 0, 0, 90, 60, undefined, 'FAST');
+
+                    if (i > 0 && i % 25 === 0) {
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+                }
+
+                document.body.removeChild(temp);
+                pdf.save(`Nhan_${maBTP}_${safeFileDate}.pdf`);
+            } catch (error) {
+                alert('Lỗi tạo PDF: ' + (error.message || error));
             } finally {
                 isPrinting = false;
             }
@@ -993,7 +1079,7 @@
             return regionSelect.value || 'MT';
         }
 
-        function buildLabelHtml(sttValue = '5200') {
+        function getLabelData(sttValue = '5200') {
             const sku = (document.getElementById('sku').value || '').trim();
             const hasSku = sku.length > 0;
             const maBTP = document.getElementById('maBTP').value || 'D009MT15066-02-0K';
@@ -1001,10 +1087,81 @@
             const quyCach = document.getElementById('quyCach').value || '20kg';
             const vungCode = applyRegionFromLot();
             const vungFull = vungCode === 'BP' ? 'Bình Phước' : vungCode === 'DN' ? 'Đồng Nai' : vungCode === 'DL' ? 'Đắk Lắk' : vungCode === 'LK' ? 'Long Khánh' : vungCode === 'KH' ? 'Khánh Hòa' : 'Miền Tây';
-            const ngaySX = document.getElementById('ngaySX').value ? 
+            const ngaySX = document.getElementById('ngaySX').value ?
                 document.getElementById('ngaySX').value.split('-').reverse().join('/') : '22/06/2026';
-            const ngayDG = document.getElementById('ngayDG').value ? 
+            const ngayDG = document.getElementById('ngayDG').value ?
                 document.getElementById('ngayDG').value.split('-').reverse().join('/') : ngaySX;
+
+            return {
+                sku,
+                hasSku,
+                maBTP,
+                tenTP,
+                quyCach,
+                vungFull,
+                ngaySX,
+                ngayDG,
+                sttValue: String(sttValue)
+            };
+        }
+
+        function drawFastLabelToPdf(pdf, sttValue) {
+            const d = getLabelData(sttValue);
+            pdf.setDrawColor(0, 0, 0);
+            pdf.setLineWidth(0.6);
+            pdf.rect(0.8, 0.8, 88.4, 58.4);
+
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(7.5);
+            if (d.hasSku) {
+                pdf.text(`Mã SKU: ${d.sku}`, 5, 5.2, { baseline: 'top' });
+            }
+            pdf.text(`Lot: ${d.maBTP}`, 86.5, 5.2, { align: 'right', baseline: 'top' });
+
+            pdf.setFontSize(12.5);
+            const titleLines = pdf.splitTextToSize(d.tenTP, 72);
+            const title = Array.isArray(titleLines) ? titleLines[0] : d.tenTP;
+            pdf.text(title, 45, 11.5, { align: 'center' });
+            pdf.line(2.2, 13.4, 87.8, 13.4);
+
+            pdf.setFontSize(5.8);
+            pdf.text('Quy Cách /SPEC', 5, 18.8);
+            pdf.text('KHỐI LƯỢNG /WEIGHT', 86.5, 18.8, { align: 'right' });
+
+            pdf.setFontSize(7.9);
+            pdf.text(`Thùng/túi: ${d.quyCach}`, 5, 22.9);
+            pdf.text(d.quyCach, 86.5, 22.9, { align: 'right' });
+
+            pdf.setFontSize(5.8);
+            pdf.text('KHÁCH HÀNG/CUSTOMER', 5, 27.3);
+            pdf.text('STT/INDEX', 86.5, 27.3, { align: 'right' });
+
+            pdf.setFontSize(7.8);
+            pdf.text('CHANH THU GROUP', 5, 31.5);
+
+            pdf.setFontSize(15);
+            pdf.text(d.sttValue, 86.5, 38.3, { align: 'right' });
+
+            pdf.setFontSize(5.8);
+            pdf.text('VÙNG NGUYÊN LIỆU', 5, 43.6);
+            pdf.setFontSize(8.2);
+            pdf.text(d.vungFull, 5, 47.8);
+
+            pdf.setFontSize(5.8);
+            pdf.text(`Ngày SX: ${d.ngaySX}`, 5, 53.8);
+            pdf.text(`Ngày ĐG: ${d.ngayDG}`, 86.5, 53.8, { align: 'right' });
+        }
+
+        function buildLabelHtml(sttValue = '5200') {
+            const data = getLabelData(sttValue);
+            const sku = data.sku;
+            const hasSku = data.hasSku;
+            const maBTP = data.maBTP;
+            const tenTP = data.tenTP;
+            const quyCach = data.quyCach;
+            const vungFull = data.vungFull;
+            const ngaySX = data.ngaySX;
+            const ngayDG = data.ngayDG;
 
             return `
                 <div style="font-family: Tahoma, Arial, sans-serif; font-size: 9.0pt; font-weight: 700; line-height: 1.15; padding: 3px 5px; height: 100%; letter-spacing: -0.2px;">
@@ -1051,6 +1208,58 @@
             const sttDau = parseInt(document.getElementById('sttDau').value) || 1;
             const soLuong = parseInt(document.getElementById('soLuongTem').value) || 1;
             document.getElementById('sttCuoi').value = sttDau + soLuong - 1;
+        }
+
+        function getValidatedPrintInput() {
+            const sttDauInput = toPositiveInt(document.getElementById('sttDau').value, 1);
+            const soLuongInput = toPositiveInt(document.getElementById('soLuongTem').value, 1);
+            const MAX_LABELS_PER_JOB = 1000;
+
+            if (soLuongInput > MAX_LABELS_PER_JOB) {
+                throw new Error(`Số lượng tem tối đa mỗi lần là ${MAX_LABELS_PER_JOB}.`);
+            }
+
+            const sttCuoi = sttDauInput + soLuongInput - 1;
+            document.getElementById('sttDau').value = sttDauInput;
+            document.getElementById('soLuongTem').value = soLuongInput;
+            document.getElementById('sttCuoi').value = sttCuoi;
+
+            return {
+                sttDau: sttDauInput,
+                sttCuoi,
+                soLuong: soLuongInput
+            };
+        }
+
+        async function reservePrintRange(requestedStart, quantity) {
+            if (!firebaseReady || !db) {
+                throw new Error('Database chưa sẵn sàng. Không thể cấp STT in mới.');
+            }
+
+            const productKey = getProductKey();
+            const productRef = db.collection("productCounters").doc(productKey);
+
+            return db.runTransaction(async (tx) => {
+                const doc = await tx.get(productRef);
+                const saved = doc.exists ? doc.data() : null;
+                const safeNext = toPositiveInt(saved ? saved.nextSTT : null, requestedStart);
+                const sttDau = Math.max(requestedStart, safeNext);
+                const sttCuoi = sttDau + quantity - 1;
+                const nextSTT = sttCuoi + 1;
+
+                tx.set(productRef, {
+                    productKey,
+                    sku: document.getElementById('sku').value || '',
+                    tenTP: document.getElementById('tenTP').value || '',
+                    maBTP: document.getElementById('maBTP').value || '',
+                    nextSTT,
+                    lastSttDau: sttDau,
+                    lastSttCuoi: sttCuoi,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+
+                return { sttDau, sttCuoi, nextSTT };
+            });
         }
 
         // ==================== RESET STT ====================
