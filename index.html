@@ -75,7 +75,7 @@
                                     <option value="DN">DN - Đồng Nai</option>
                                     <option value="DL">DL - Đắk Lắk</option>
                                     <option value="LK">LK - Long Khánh</option>
-                                    <option value="LK">KH - Khánh Hoà</option>
+                                    <option value="KH">KH - Khánh Hòa</option>
                                 </select>
                                 
                             </div>
@@ -973,6 +973,7 @@
             if (upperLot.includes('DN') || upperLot.includes('DONG NAI')) return 'DN';
             if (upperLot.includes('DL') || upperLot.includes('DAKLAK') || upperLot.includes('DAK LAK')) return 'DL';
             if (upperLot.includes('LK') || upperLot.includes('LONGKHANH') || upperLot.includes('LONG KHANH')) return 'LK';
+            if (upperLot.includes('KH') || upperLot.includes('KHANHHOA') || upperLot.includes('KHANH HOA')) return 'KH';
             if (upperLot.includes('MT') || upperLot.includes('MIEN TAY')) return 'MT';
             return null;
         }
@@ -999,7 +1000,7 @@
             const tenTP = document.getElementById('tenTP').value || 'TP CẤP ĐÔNG SẦU RIÊNG...';
             const quyCach = document.getElementById('quyCach').value || '20kg';
             const vungCode = applyRegionFromLot();
-            const vungFull = vungCode === 'BP' ? 'Bình Phước' : vungCode === 'DN' ? 'Đồng Nai' : vungCode === 'DL' ? 'Đắk Lắk' : vungCode === 'LK' ? 'Long Khánh' : 'Miền Tây';
+            const vungFull = vungCode === 'BP' ? 'Bình Phước' : vungCode === 'DN' ? 'Đồng Nai' : vungCode === 'DL' ? 'Đắk Lắk' : vungCode === 'LK' ? 'Long Khánh' : vungCode === 'KH' ? 'Khánh Hòa' : 'Miền Tây';
             const ngaySX = document.getElementById('ngaySX').value ? 
                 document.getElementById('ngaySX').value.split('-').reverse().join('/') : '22/06/2026';
             const ngayDG = document.getElementById('ngayDG').value ? 
