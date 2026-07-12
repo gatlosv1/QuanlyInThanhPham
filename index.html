@@ -411,6 +411,7 @@
         }
 
         async function loadProductSTT(force = false) {
+            if (isPrinting) return;
             const productKey = getProductKey();
             if (!productKey || (!force && productKey === lastLoadedProductKey)) return;
 
@@ -656,9 +657,14 @@
         async function printLabels(isReprint = false) {
             if (isPrinting) return;
 
+            clearTimeout(productSttLoadTimer);
+            productSttLoadTimer = null;
+
+            updateSttCuoi();
+
             const sttDau = parseInt(document.getElementById('sttDau').value) || 1;
-            const sttCuoi = parseInt(document.getElementById('sttCuoi').value) || 1;
-            const count = Math.max(1, sttCuoi - sttDau + 1);
+            const count = toPositiveInt(document.getElementById('soLuongTem').value, 1);
+            const sttCuoi = sttDau + count - 1;
 
             isPrinting = true;
 
@@ -667,6 +673,7 @@
                     @page { size: 90mm 60mm; margin: 0mm !important; }
                     body { margin: 0 !important; padding: 0 !important; font-family: Tahoma, Arial, sans-serif; font-weight: 700; letter-spacing: -0.2px; }
                     .label { width: 90mm; height: 60mm; padding: 1.2mm 3.5mm 1.8mm 3.5mm; box-sizing: border-box; page-break-after: always; font-size: 9.0pt; line-height: 1.15; }
+                    .label:last-child { page-break-after: auto; }
                 </style>
             `;
 
@@ -678,13 +685,14 @@
 
                 const win = window.open('', '_blank');
                 if (!win) {
+                    isPrinting = false;
                     alert('Không mở được cửa sổ in. Vui lòng cho phép popup và thử lại.');
                     return;
                 }
 
                 win.document.write(`<html><head><title>${isReprint ? 'In Lại' : 'In Nhãn'}</title>${printStyles}</head><body>${labelHtml.join('')}</body></html>`);
                 win.document.close();
-                win.onload = () => win.print();
+                win.addEventListener('load', () => win.print(), { once: true });
 
                 if (!isReprint) {
                     const nextSTT = sttCuoi + 1;
