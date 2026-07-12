@@ -8,8 +8,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -77,7 +75,6 @@
                                     <option value="DN">DN - Đồng Nai</option>
                                     <option value="DL">DL - Đắk Lắk</option>
                                     <option value="LK">LK - Long Khánh</option>
-                                    <option value="KH">KH - Khánh Hòa</option>
                                 </select>
                                 
                             </div>
@@ -116,7 +113,7 @@
                         </button>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+                    <div class="grid grid-cols-2 gap-4 mt-6">
                         <button onclick="printLabels(false)" 
                                 class="bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
                             <i class="fas fa-print"></i> IN NHÃN MỚI
@@ -124,10 +121,6 @@
                         <button onclick="printLabels(true)" 
                                 class="bg-orange-600 hover:bg-orange-700 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
                             <i class="fas fa-redo"></i> IN LẠI 
-                        </button>
-                        <button onclick="downloadLabelsPDF()" 
-                                class="bg-emerald-600 hover:bg-emerald-700 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
-                            <i class="fas fa-file-pdf"></i> TẢI PDF
                         </button>
                     </div>
                 </div>
@@ -385,7 +378,6 @@
         let lastLoadedProductKey = '';
         let productSttLoadTimer = null;
         let isPrinting = false;
-        let isGeneratingPdf = false;
 
         function verifyProductActionPassword() {
             const password = prompt('Nhập mật khẩu để thao tác danh sách thành phẩm:');
@@ -643,15 +635,15 @@
         }
 
         // ==================== GHI LỊCH SỬ IN TEM ====================
-        async function logPrint(printed = {}) {
+        async function logPrint() {
             const data = {
                 maBTP: document.getElementById('maBTP').value || '',
                 sku: document.getElementById('sku').value || '',
                 tenTP: document.getElementById('tenTP').value || '',
                 quyCach: document.getElementById('quyCach').value || '20kg',
-                soLuong: toPositiveInt(printed.soLuong, parseInt(document.getElementById('soLuongTem').value) || 1),
-                sttDau: toPositiveInt(printed.sttDau, parseInt(document.getElementById('sttDau').value) || 1),
-                sttCuoi: toPositiveInt(printed.sttCuoi, parseInt(document.getElementById('sttCuoi').value) || 1),
+                soLuong: parseInt(document.getElementById('soLuongTem').value) || 1,
+                sttDau: parseInt(document.getElementById('sttDau').value),
+                sttCuoi: parseInt(document.getElementById('sttCuoi').value),
                 productKey: getProductKey(),
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             };
@@ -660,14 +652,14 @@
 
         // ... (các hàm importExcel, populateGrid, updatePreview, updateSttCuoi, resetSTT, switchTab giữ nguyên)
 
-        function isQuotaExceededError(error) {
-            const msg = String(error?.message || error || '').toLowerCase();
-            return msg.includes('quota') || msg.includes('resource_exhausted');
-        }
-
         // ==================== IN NHÃN THỰC TẾ ====================
         async function printLabels(isReprint = false) {
             if (isPrinting) return;
+
+            const sttDau = parseInt(document.getElementById('sttDau').value) || 1;
+            const sttCuoi = parseInt(document.getElementById('sttCuoi').value) || 1;
+            const count = Math.max(1, sttCuoi - sttDau + 1);
+
             isPrinting = true;
 
             const printStyles = `
@@ -679,33 +671,6 @@
             `;
 
             try {
-                const validated = getValidatedPrintInput();
-                let sttDau = validated.sttDau;
-                let sttCuoi = validated.sttCuoi;
-                const count = validated.soLuong;
-                let canSyncCloud = !isReprint;
-
-                if (!isReprint) {
-                    try {
-                        const reserved = await reservePrintRange(validated.sttDau, validated.soLuong);
-                        sttDau = reserved.sttDau;
-                        sttCuoi = reserved.sttCuoi;
-                        document.getElementById('sttDau').value = sttDau;
-                        document.getElementById('sttCuoi').value = sttCuoi;
-                    } catch (reserveError) {
-                        if (!isQuotaExceededError(reserveError)) {
-                            throw reserveError;
-                        }
-
-                        canSyncCloud = false;
-                        sttDau = validated.sttDau;
-                        sttCuoi = validated.sttCuoi;
-                        document.getElementById('sttDau').value = sttDau;
-                        document.getElementById('sttCuoi').value = sttCuoi;
-                        alert('⚠️ Firebase đã hết quota. Vẫn cho phép in tạm thời nhưng KHÔNG ghi log/cập nhật STT cloud.');
-                    }
-                }
-
                 const labelHtml = [];
                 for (let i = 0; i < count; i++) {
                     labelHtml.push(`<div class="label">${buildLabelHtml(sttDau + i)}</div>`);
@@ -723,88 +688,18 @@
 
                 if (!isReprint) {
                     const nextSTT = sttCuoi + 1;
-
-                    if (canSyncCloud) {
-                        const syncResults = await Promise.allSettled([
-                            logPrint({ soLuong: count, sttDau, sttCuoi }),
-                            saveProductSTT(nextSTT, sttDau, sttCuoi)
-                        ]);
-
-                        const hasSyncError = syncResults.some(r => r.status === 'rejected');
-                        if (hasSyncError) {
-                            alert('⚠️ Đã in xong nhưng có lỗi khi đồng bộ lịch sử/STT lên cloud.');
-                        }
-                    }
-
                     document.getElementById('sttDau').value = nextSTT;
                     updateSttCuoi();
+
+                    await Promise.allSettled([
+                        logPrint(),
+                        saveProductSTT(nextSTT, sttDau, sttCuoi)
+                    ]);
                 } else {
                     alert(`✅ Đã in lại ${count} tem (KHÔNG ghi log - KHÔNG tăng tổng số lượng)`);
                 }
-            } catch (error) {
-                alert('Lỗi khi in: ' + (error.message || error));
             } finally {
                 isPrinting = false;
-            }
-        }
-
-        async function downloadLabelsPDF() {
-            if (isGeneratingPdf) return;
-            isGeneratingPdf = true;
-            let temp = null;
-
-            try {
-                const validated = getValidatedPrintInput();
-                const sttDau = validated.sttDau;
-                const soLuong = validated.soLuong;
-                const safeFileDate = new Date().toISOString().slice(0, 10);
-                const maBTP = (document.getElementById('maBTP').value || 'NO_LOT').replace(/[^a-zA-Z0-9_-]/g, '_');
-
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({
-                    orientation: 'landscape',
-                    unit: 'mm',
-                    format: [90, 60]
-                });
-
-                // Luôn render từ HTML để giữ đúng tiếng Việt và bố cục như preview.
-                const renderScale = soLuong >= 200 ? 1.0 : soLuong >= 100 ? 1.15 : 1.35;
-                const useJpeg = soLuong >= 80;
-
-                temp = document.createElement('div');
-                temp.style.position = 'fixed';
-                temp.style.left = '-99999px';
-                temp.style.top = '0';
-                temp.style.padding = '0';
-                temp.style.background = '#fff';
-                document.body.appendChild(temp);
-
-                for (let i = 0; i < soLuong; i++) {
-                    temp.innerHTML = `<div class="label-preview">${buildLabelHtml(sttDau + i)}</div>`;
-                    const labelNode = temp.firstElementChild;
-                    const canvas = await html2canvas(labelNode, {
-                        scale: renderScale,
-                        backgroundColor: '#ffffff',
-                        useCORS: true
-                    });
-
-                    const imgData = useJpeg ? canvas.toDataURL('image/jpeg', 0.82) : canvas.toDataURL('image/png');
-                    if (i > 0) pdf.addPage([90, 60], 'landscape');
-                    pdf.addImage(imgData, useJpeg ? 'JPEG' : 'PNG', 0, 0, 90, 60, undefined, 'FAST');
-
-                    if (i > 0 && i % 25 === 0) {
-                        await new Promise(resolve => setTimeout(resolve, 0));
-                    }
-                }
-
-                pdf.save(`Nhan_${maBTP}_${safeFileDate}.pdf`);
-            } catch (error) {
-                alert('Lỗi tạo PDF: ' + (error.message || error));
-            } finally {
-                if (temp && temp.parentNode) {
-                    temp.parentNode.removeChild(temp);
-                }
-                isGeneratingPdf = false;
             }
         }
 
@@ -1077,7 +972,6 @@
             if (upperLot.includes('DN') || upperLot.includes('DONG NAI')) return 'DN';
             if (upperLot.includes('DL') || upperLot.includes('DAKLAK') || upperLot.includes('DAK LAK')) return 'DL';
             if (upperLot.includes('LK') || upperLot.includes('LONGKHANH') || upperLot.includes('LONG KHANH')) return 'LK';
-            if (upperLot.includes('KH') || upperLot.includes('KHANHHOA') || upperLot.includes('KHANH HOA')) return 'KH';
             if (upperLot.includes('MT') || upperLot.includes('MIEN TAY')) return 'MT';
             return null;
         }
@@ -1097,42 +991,18 @@
             return regionSelect.value || 'MT';
         }
 
-        function getLabelData(sttValue = '5200') {
+        function buildLabelHtml(sttValue = '5200') {
             const sku = (document.getElementById('sku').value || '').trim();
             const hasSku = sku.length > 0;
             const maBTP = document.getElementById('maBTP').value || 'D009MT15066-02-0K';
             const tenTP = document.getElementById('tenTP').value || 'TP CẤP ĐÔNG SẦU RIÊNG...';
             const quyCach = document.getElementById('quyCach').value || '20kg';
             const vungCode = applyRegionFromLot();
-            const vungFull = vungCode === 'BP' ? 'Bình Phước' : vungCode === 'DN' ? 'Đồng Nai' : vungCode === 'DL' ? 'Đắk Lắk' : vungCode === 'LK' ? 'Long Khánh' : vungCode === 'KH' ? 'Khánh Hòa' : 'Miền Tây';
-            const ngaySX = document.getElementById('ngaySX').value ?
+            const vungFull = vungCode === 'BP' ? 'Bình Phước' : vungCode === 'DN' ? 'Đồng Nai' : vungCode === 'DL' ? 'Đắk Lắk' : vungCode === 'LK' ? 'Long Khánh' : 'Miền Tây';
+            const ngaySX = document.getElementById('ngaySX').value ? 
                 document.getElementById('ngaySX').value.split('-').reverse().join('/') : '22/06/2026';
-            const ngayDG = document.getElementById('ngayDG').value ?
+            const ngayDG = document.getElementById('ngayDG').value ? 
                 document.getElementById('ngayDG').value.split('-').reverse().join('/') : ngaySX;
-
-            return {
-                sku,
-                hasSku,
-                maBTP,
-                tenTP,
-                quyCach,
-                vungFull,
-                ngaySX,
-                ngayDG,
-                sttValue: String(sttValue)
-            };
-        }
-
-        function buildLabelHtml(sttValue = '5200') {
-            const data = getLabelData(sttValue);
-            const sku = data.sku;
-            const hasSku = data.hasSku;
-            const maBTP = data.maBTP;
-            const tenTP = data.tenTP;
-            const quyCach = data.quyCach;
-            const vungFull = data.vungFull;
-            const ngaySX = data.ngaySX;
-            const ngayDG = data.ngayDG;
 
             return `
                 <div style="font-family: Tahoma, Arial, sans-serif; font-size: 9.0pt; font-weight: 700; line-height: 1.15; padding: 3px 5px; height: 100%; letter-spacing: -0.2px;">
@@ -1143,7 +1013,7 @@
                     <div style="font-size: 12.8pt; font-weight: 800; text-align: center; margin: 4px 0 6px; line-height: 1.05;">
                         ${tenTP}
                     </div>
-                    <hr style="border: 1px solid #000; margin: 7px 0 5px;">
+                    <hr style="border: 1px solid #000; margin: 3px 0 5px;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
                         <div><strong>Quy Cách /SPEC</strong><br>Thùng/túi: ${quyCach}</div>
                         <div style="text-align: right;"><strong>KHỐI LƯỢNG /WEIGHT</strong><br>${quyCach}</div>
@@ -1179,58 +1049,6 @@
             const sttDau = parseInt(document.getElementById('sttDau').value) || 1;
             const soLuong = parseInt(document.getElementById('soLuongTem').value) || 1;
             document.getElementById('sttCuoi').value = sttDau + soLuong - 1;
-        }
-
-        function getValidatedPrintInput() {
-            const sttDauInput = toPositiveInt(document.getElementById('sttDau').value, 1);
-            const soLuongInput = toPositiveInt(document.getElementById('soLuongTem').value, 1);
-            const MAX_LABELS_PER_JOB = 1000;
-
-            if (soLuongInput > MAX_LABELS_PER_JOB) {
-                throw new Error(`Số lượng tem tối đa mỗi lần là ${MAX_LABELS_PER_JOB}.`);
-            }
-
-            const sttCuoi = sttDauInput + soLuongInput - 1;
-            document.getElementById('sttDau').value = sttDauInput;
-            document.getElementById('soLuongTem').value = soLuongInput;
-            document.getElementById('sttCuoi').value = sttCuoi;
-
-            return {
-                sttDau: sttDauInput,
-                sttCuoi,
-                soLuong: soLuongInput
-            };
-        }
-
-        async function reservePrintRange(requestedStart, quantity) {
-            if (!firebaseReady || !db) {
-                throw new Error('Database chưa sẵn sàng. Không thể cấp STT in mới.');
-            }
-
-            const productKey = getProductKey();
-            const productRef = db.collection("productCounters").doc(productKey);
-
-            return db.runTransaction(async (tx) => {
-                const doc = await tx.get(productRef);
-                const saved = doc.exists ? doc.data() : null;
-                const safeNext = toPositiveInt(saved ? saved.nextSTT : null, requestedStart);
-                const sttDau = Math.max(requestedStart, safeNext);
-                const sttCuoi = sttDau + quantity - 1;
-                const nextSTT = sttCuoi + 1;
-
-                tx.set(productRef, {
-                    productKey,
-                    sku: document.getElementById('sku').value || '',
-                    tenTP: document.getElementById('tenTP').value || '',
-                    maBTP: document.getElementById('maBTP').value || '',
-                    nextSTT,
-                    lastSttDau: sttDau,
-                    lastSttCuoi: sttCuoi,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-
-                return { sttDau, sttCuoi, nextSTT };
-            });
         }
 
         // ==================== RESET STT ====================
