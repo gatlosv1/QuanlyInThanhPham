@@ -385,6 +385,7 @@
         let lastLoadedProductKey = '';
         let productSttLoadTimer = null;
         let isPrinting = false;
+        let isGeneratingPdf = false;
 
         function verifyProductActionPassword() {
             const password = prompt('Nhập mật khẩu để thao tác danh sách thành phẩm:');
@@ -659,6 +660,11 @@
 
         // ... (các hàm importExcel, populateGrid, updatePreview, updateSttCuoi, resetSTT, switchTab giữ nguyên)
 
+        function isQuotaExceededError(error) {
+            const msg = String(error?.message || error || '').toLowerCase();
+            return msg.includes('quota') || msg.includes('resource_exhausted');
+        }
+
         // ==================== IN NHÃN THỰC TẾ ====================
         async function printLabels(isReprint = false) {
             if (isPrinting) return;
@@ -677,13 +683,27 @@
                 let sttDau = validated.sttDau;
                 let sttCuoi = validated.sttCuoi;
                 const count = validated.soLuong;
+                let canSyncCloud = !isReprint;
 
                 if (!isReprint) {
-                    const reserved = await reservePrintRange(validated.sttDau, validated.soLuong);
-                    sttDau = reserved.sttDau;
-                    sttCuoi = reserved.sttCuoi;
-                    document.getElementById('sttDau').value = sttDau;
-                    document.getElementById('sttCuoi').value = sttCuoi;
+                    try {
+                        const reserved = await reservePrintRange(validated.sttDau, validated.soLuong);
+                        sttDau = reserved.sttDau;
+                        sttCuoi = reserved.sttCuoi;
+                        document.getElementById('sttDau').value = sttDau;
+                        document.getElementById('sttCuoi').value = sttCuoi;
+                    } catch (reserveError) {
+                        if (!isQuotaExceededError(reserveError)) {
+                            throw reserveError;
+                        }
+
+                        canSyncCloud = false;
+                        sttDau = validated.sttDau;
+                        sttCuoi = validated.sttCuoi;
+                        document.getElementById('sttDau').value = sttDau;
+                        document.getElementById('sttCuoi').value = sttCuoi;
+                        alert('⚠️ Firebase đã hết quota. Vẫn cho phép in tạm thời nhưng KHÔNG ghi log/cập nhật STT cloud.');
+                    }
                 }
 
                 const labelHtml = [];
@@ -704,10 +724,17 @@
                 if (!isReprint) {
                     const nextSTT = sttCuoi + 1;
 
-                    await Promise.allSettled([
-                        logPrint({ soLuong: count, sttDau, sttCuoi }),
-                        saveProductSTT(nextSTT, sttDau, sttCuoi)
-                    ]);
+                    if (canSyncCloud) {
+                        const syncResults = await Promise.allSettled([
+                            logPrint({ soLuong: count, sttDau, sttCuoi }),
+                            saveProductSTT(nextSTT, sttDau, sttCuoi)
+                        ]);
+
+                        const hasSyncError = syncResults.some(r => r.status === 'rejected');
+                        if (hasSyncError) {
+                            alert('⚠️ Đã in xong nhưng có lỗi khi đồng bộ lịch sử/STT lên cloud.');
+                        }
+                    }
 
                     document.getElementById('sttDau').value = nextSTT;
                     updateSttCuoi();
@@ -722,8 +749,9 @@
         }
 
         async function downloadLabelsPDF() {
-            if (isPrinting) return;
-            isPrinting = true;
+            if (isGeneratingPdf) return;
+            isGeneratingPdf = true;
+            let temp = null;
 
             try {
                 const validated = getValidatedPrintInput();
@@ -739,23 +767,11 @@
                     format: [90, 60]
                 });
 
-                const FAST_PDF_THRESHOLD = 80;
-                if (soLuong >= FAST_PDF_THRESHOLD) {
-                    for (let i = 0; i < soLuong; i++) {
-                        if (i > 0) pdf.addPage([90, 60], 'landscape');
-                        drawFastLabelToPdf(pdf, sttDau + i);
+                // Luôn render từ HTML để giữ đúng tiếng Việt và bố cục như preview.
+                const renderScale = soLuong >= 200 ? 1.0 : soLuong >= 100 ? 1.15 : 1.35;
+                const useJpeg = soLuong >= 80;
 
-                        if (i > 0 && i % 100 === 0) {
-                            await new Promise(resolve => setTimeout(resolve, 0));
-                        }
-                    }
-
-                    pdf.save(`Nhan_${maBTP}_${safeFileDate}.pdf`);
-                    alert(`✅ Đã tạo PDF nhanh ${soLuong} tem.`);
-                    return;
-                }
-
-                const temp = document.createElement('div');
+                temp = document.createElement('div');
                 temp.style.position = 'fixed';
                 temp.style.left = '-99999px';
                 temp.style.top = '0';
@@ -767,26 +783,28 @@
                     temp.innerHTML = `<div class="label-preview">${buildLabelHtml(sttDau + i)}</div>`;
                     const labelNode = temp.firstElementChild;
                     const canvas = await html2canvas(labelNode, {
-                        scale: 1.4,
+                        scale: renderScale,
                         backgroundColor: '#ffffff',
                         useCORS: true
                     });
 
-                    const imgData = canvas.toDataURL('image/png');
+                    const imgData = useJpeg ? canvas.toDataURL('image/jpeg', 0.82) : canvas.toDataURL('image/png');
                     if (i > 0) pdf.addPage([90, 60], 'landscape');
-                    pdf.addImage(imgData, 'PNG', 0, 0, 90, 60, undefined, 'FAST');
+                    pdf.addImage(imgData, useJpeg ? 'JPEG' : 'PNG', 0, 0, 90, 60, undefined, 'FAST');
 
                     if (i > 0 && i % 25 === 0) {
                         await new Promise(resolve => setTimeout(resolve, 0));
                     }
                 }
 
-                document.body.removeChild(temp);
                 pdf.save(`Nhan_${maBTP}_${safeFileDate}.pdf`);
             } catch (error) {
                 alert('Lỗi tạo PDF: ' + (error.message || error));
             } finally {
-                isPrinting = false;
+                if (temp && temp.parentNode) {
+                    temp.parentNode.removeChild(temp);
+                }
+                isGeneratingPdf = false;
             }
         }
 
@@ -1105,53 +1123,6 @@
             };
         }
 
-        function drawFastLabelToPdf(pdf, sttValue) {
-            const d = getLabelData(sttValue);
-            pdf.setDrawColor(0, 0, 0);
-            pdf.setLineWidth(0.6);
-            pdf.rect(0.8, 0.8, 88.4, 58.4);
-
-            pdf.setFont('helvetica', 'bold');
-            pdf.setFontSize(7.5);
-            if (d.hasSku) {
-                pdf.text(`Mã SKU: ${d.sku}`, 5, 5.2, { baseline: 'top' });
-            }
-            pdf.text(`Lot: ${d.maBTP}`, 86.5, 5.2, { align: 'right', baseline: 'top' });
-
-            pdf.setFontSize(12.5);
-            const titleLines = pdf.splitTextToSize(d.tenTP, 72);
-            const title = Array.isArray(titleLines) ? titleLines[0] : d.tenTP;
-            pdf.text(title, 45, 11.5, { align: 'center' });
-            pdf.line(2.2, 13.4, 87.8, 13.4);
-
-            pdf.setFontSize(5.8);
-            pdf.text('Quy Cách /SPEC', 5, 18.8);
-            pdf.text('KHỐI LƯỢNG /WEIGHT', 86.5, 18.8, { align: 'right' });
-
-            pdf.setFontSize(7.9);
-            pdf.text(`Thùng/túi: ${d.quyCach}`, 5, 22.9);
-            pdf.text(d.quyCach, 86.5, 22.9, { align: 'right' });
-
-            pdf.setFontSize(5.8);
-            pdf.text('KHÁCH HÀNG/CUSTOMER', 5, 27.3);
-            pdf.text('STT/INDEX', 86.5, 27.3, { align: 'right' });
-
-            pdf.setFontSize(7.8);
-            pdf.text('CHANH THU GROUP', 5, 31.5);
-
-            pdf.setFontSize(15);
-            pdf.text(d.sttValue, 86.5, 38.3, { align: 'right' });
-
-            pdf.setFontSize(5.8);
-            pdf.text('VÙNG NGUYÊN LIỆU', 5, 43.6);
-            pdf.setFontSize(8.2);
-            pdf.text(d.vungFull, 5, 47.8);
-
-            pdf.setFontSize(5.8);
-            pdf.text(`Ngày SX: ${d.ngaySX}`, 5, 53.8);
-            pdf.text(`Ngày ĐG: ${d.ngayDG}`, 86.5, 53.8, { align: 'right' });
-        }
-
         function buildLabelHtml(sttValue = '5200') {
             const data = getLabelData(sttValue);
             const sku = data.sku;
@@ -1172,7 +1143,7 @@
                     <div style="font-size: 12.8pt; font-weight: 800; text-align: center; margin: 4px 0 6px; line-height: 1.05;">
                         ${tenTP}
                     </div>
-                    <hr style="border: 1px solid #000; margin: 3px 0 5px;">
+                    <hr style="border: 1px solid #000; margin: 7px 0 5px;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
                         <div><strong>Quy Cách /SPEC</strong><br>Thùng/túi: ${quyCach}</div>
                         <div style="text-align: right;"><strong>KHỐI LƯỢNG /WEIGHT</strong><br>${quyCach}</div>
