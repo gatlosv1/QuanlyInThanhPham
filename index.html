@@ -706,7 +706,7 @@
                             complete();
                             return;
                         }
-                        setTimeout(cleanup, 1500);
+                        setTimeout(cleanup, 900);
                     };
 
                     setTimeout(() => {
@@ -715,13 +715,13 @@
                             printWin.print();
                             if (!waitForAfterPrint) {
                                 resolve();
-                                setTimeout(cleanup, 1500);
+                                setTimeout(cleanup, 900);
                             }
                         } catch (error) {
                             cleanup();
                             reject(error);
                         }
-                    }, 30);
+                    }, 0);
 
                     if (waitForAfterPrint) {
                         // Một số trình duyệt/driver không bắn afterprint, nên fallback tự dọn.
@@ -756,15 +756,24 @@
                 <style>
                     @page { size: 90mm 60mm; margin: 0mm !important; }
                     body { margin: 0 !important; padding: 0 !important; font-family: Tahoma, Arial, sans-serif; font-weight: 700; letter-spacing: -0.2px; }
-                    .label { width: 90mm; height: 60mm; padding: 1.2mm 3.5mm 1.8mm 3.5mm; box-sizing: border-box; page-break-after: always; font-size: 9.0pt; line-height: 1.15; }
+                    .label { width: 90mm; height: 60mm; box-sizing: border-box; page-break-after: always; }
                     .label:last-child { page-break-after: auto; }
+                    .lbl-inner { padding: 1.2mm 3.5mm 1.8mm 3.5mm; height: 100%; box-sizing: border-box; font-size: 9.0pt; line-height: 1.15; }
+                    .lbl-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+                    .lbl-top { font-size: 7.8pt; font-weight: 700; }
+                    .lbl-name { font-size: 12.8pt; font-weight: 800; text-align: center; margin: 4px 0 6px; line-height: 1.05; }
+                    .lbl-rule { border: 1px solid #000; margin: 3px 0 5px; }
+                    .lbl-right { text-align: right; }
+                    .lbl-index { font-size: 15.8pt; font-weight: 800; }
+                    .lbl-region { margin-bottom: 3px; font-weight: 700; }
+                    .lbl-date { display: flex; justify-content: space-between; font-size: 9.0pt; margin-top: 5px; }
                 </style>
             `;
 
             try {
                 const labelHtml = new Array(count);
                 for (let i = 0; i < count; i++) {
-                    labelHtml[i] = `<div class="label">${buildLabelHtml(sttDau + i, labelSnapshot)}</div>`;
+                    labelHtml[i] = `<div class="label">${buildLabelHtmlCompact(sttDau + i, labelSnapshot)}</div>`;
                 }
 
                 const printHtml = `<html><head><title>${isReprint ? 'In Lại' : 'In Nhãn'}</title>${printStyles}</head><body>${labelHtml.join('')}</body></html>`;
@@ -1335,6 +1344,42 @@
                     </div>
                     <div style="margin-bottom: 3px; font-weight: 700;"><strong>VÙNG NGUYÊN LIỆU</strong><br>${vungFull}</div>
                     <div style="display: flex; justify-content: space-between; font-size: 9.0pt; margin-top: 5px;">
+                        <div>Ngày SX: ${ngaySX}</div>
+                        <div>Ngày ĐG: ${ngayDG}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function buildLabelHtmlCompact(sttValue = '5200', snapshotData = null) {
+            const data = snapshotData || getLabelSnapshotData();
+            const sku = data.sku || '';
+            const hasSku = sku.length > 0;
+            const maBTP = data.maBTP || 'D009MT15066-02-0K';
+            const tenTP = data.tenTP || 'TP CẤP ĐÔNG SẦU RIÊNG...';
+            const quyCach = data.quyCach || '20kg';
+            const vungFull = data.vungFull || 'Miền Tây';
+            const ngaySX = data.ngaySX || '22/06/2026';
+            const ngayDG = data.ngayDG || ngaySX;
+
+            return `
+                <div class="lbl-inner">
+                    <div class="lbl-row lbl-top">
+                        <div>${hasSku ? `Mã SKU: ${sku}` : ''}</div>
+                        <div>Lot: ${maBTP}</div>
+                    </div>
+                    <div class="lbl-name">${tenTP}</div>
+                    <hr class="lbl-rule">
+                    <div class="lbl-row">
+                        <div><strong>Quy Cách /SPEC</strong><br>Thùng/túi: ${quyCach}</div>
+                        <div class="lbl-right"><strong>KHỐI LƯỢNG /WEIGHT</strong><br>${quyCach}</div>
+                    </div>
+                    <div class="lbl-row">
+                        <div><strong>KHÁCH HÀNG/CUSTOMER</strong><br>CHANH THU GROUP</div>
+                        <div class="lbl-right"><strong>STT/INDEX</strong><br><span class="lbl-index">${sttValue}</span></div>
+                    </div>
+                    <div class="lbl-region"><strong>VÙNG NGUYÊN LIỆU</strong><br>${vungFull}</div>
+                    <div class="lbl-date">
                         <div>Ngày SX: ${ngaySX}</div>
                         <div>Ngày ĐG: ${ngayDG}</div>
                     </div>
