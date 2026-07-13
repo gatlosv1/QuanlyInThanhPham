@@ -8,6 +8,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -113,7 +116,7 @@
                         </button>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4 mt-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
                         <button onclick="printLabels(false)" 
                                 class="bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
                             <i class="fas fa-print"></i> IN NHÃN MỚI
@@ -121,6 +124,10 @@
                         <button onclick="printLabels(true)" 
                                 class="bg-orange-600 hover:bg-orange-700 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
                             <i class="fas fa-redo"></i> IN LẠI 
+                        </button>
+                        <button onclick="downloadPdfLabels()"
+                                class="bg-emerald-700 hover:bg-emerald-800 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
+                            <i class="fas fa-file-pdf"></i> TẢI PDF
                         </button>
                     </div>
                 </div>
@@ -653,7 +660,7 @@
 
         // ... (các hàm importExcel, populateGrid, updatePreview, updateSttCuoi, resetSTT, switchTab giữ nguyên)
 
-        function printHtmlOnce(html) {
+        function printHtmlOnce(html, { waitForAfterPrint = false } = {}) {
             return new Promise((resolve, reject) => {
                 const iframe = document.createElement('iframe');
                 iframe.style.position = 'fixed';
@@ -694,19 +701,32 @@
                         return;
                     }
 
-                    printWin.onafterprint = complete;
+                    printWin.onafterprint = () => {
+                        if (waitForAfterPrint) {
+                            complete();
+                            return;
+                        }
+                        setTimeout(cleanup, 1500);
+                    };
+
                     setTimeout(() => {
                         try {
-                            printWin.focus();
+                            // Không chờ afterprint để đẩy tốc độ phản hồi nhanh nhất.
                             printWin.print();
+                            if (!waitForAfterPrint) {
+                                resolve();
+                                setTimeout(cleanup, 1500);
+                            }
                         } catch (error) {
                             cleanup();
                             reject(error);
                         }
-                    }, 120);
+                    }, 30);
 
-                    // Một số trình duyệt/driver không bắn afterprint, nên fallback tự dọn.
-                    setTimeout(complete, 5000);
+                    if (waitForAfterPrint) {
+                        // Một số trình duyệt/driver không bắn afterprint, nên fallback tự dọn.
+                        setTimeout(complete, 2500);
+                    }
                 };
 
                 iframe.addEventListener('load', handleLoad, { once: true });
@@ -747,7 +767,7 @@
                 }
 
                 const printHtml = `<html><head><title>${isReprint ? 'In Lại' : 'In Nhãn'}</title>${printStyles}</head><body>${labelHtml.join('')}</body></html>`;
-                await printHtmlOnce(printHtml);
+                await printHtmlOnce(printHtml, { waitForAfterPrint: false });
 
                 if (!isReprint) {
                     const nextSTT = sttCuoi + 1;
@@ -763,6 +783,232 @@
                 }
             } finally {
                 isPrinting = false;
+            }
+        }
+
+        function getLabelSnapshotData() {
+            const sku = (document.getElementById('sku').value || '').trim();
+            const maBTP = (document.getElementById('maBTP').value || 'LOT').trim();
+            const tenTP = (document.getElementById('tenTP').value || 'TP CẤP ĐÔNG SẦU RIÊNG...').trim();
+            const quyCach = (document.getElementById('quyCach').value || '20kg').trim();
+            const vungCode = applyRegionFromLot();
+            const vungFull = vungCode === 'BP' ? 'Bình Phước' : vungCode === 'DN' ? 'Đồng Nai' : vungCode === 'DL' ? 'Đắk Lắk' : vungCode === 'LK' ? 'Long Khánh' : 'Miền Tây';
+            const ngaySX = document.getElementById('ngaySX').value ? document.getElementById('ngaySX').value.split('-').reverse().join('/') : '22/06/2026';
+            const ngayDG = document.getElementById('ngayDG').value ? document.getElementById('ngayDG').value.split('-').reverse().join('/') : ngaySX;
+            return { sku, maBTP, tenTP, quyCach, vungFull, ngaySX, ngayDG };
+        }
+
+        function drawWrappedCenterText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
+            const words = String(text || '').split(/\s+/).filter(Boolean);
+            if (!words.length) return;
+            const lines = [];
+            let current = words[0] || '';
+            for (let i = 1; i < words.length; i++) {
+                const candidate = `${current} ${words[i]}`;
+                if (ctx.measureText(candidate).width <= maxWidth) {
+                    current = candidate;
+                } else {
+                    lines.push(current);
+                    current = words[i];
+                    if (lines.length >= maxLines - 1) break;
+                }
+            }
+            if (lines.length < maxLines && current) lines.push(current);
+            for (let i = 0; i < Math.min(lines.length, maxLines); i++) {
+                ctx.fillText(lines[i], x, y + i * lineHeight);
+            }
+        }
+
+        function createLabelTemplateCanvas(data) {
+            const width = 900;
+            const height = 600;
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) throw new Error('Không tạo được canvas.');
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(1.5, 1.5, width - 3, height - 3);
+
+            ctx.fillStyle = '#000000';
+            ctx.textBaseline = 'top';
+
+            ctx.font = '700 24px Tahoma, Arial, sans-serif';
+            ctx.textAlign = 'left';
+            if (data.sku) ctx.fillText(`Mã SKU: ${data.sku}`, 34, 28);
+            ctx.textAlign = 'right';
+            ctx.fillText(`Lot: ${data.maBTP}`, 866, 28);
+
+            ctx.textAlign = 'center';
+            ctx.font = '800 49px Tahoma, Arial, sans-serif';
+            drawWrappedCenterText(ctx, data.tenTP, width / 2, 78, 800, 56, 2);
+
+            ctx.beginPath();
+            ctx.moveTo(28, 196);
+            ctx.lineTo(872, 196);
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            ctx.textAlign = 'left';
+            ctx.font = '700 24px Tahoma, Arial, sans-serif';
+            ctx.fillText('Quy Cách /SPEC', 34, 214);
+            ctx.font = '700 32px Tahoma, Arial, sans-serif';
+            ctx.fillText(`Thùng/túi: ${data.quyCach}`, 34, 246);
+
+            ctx.textAlign = 'right';
+            ctx.font = '700 24px Tahoma, Arial, sans-serif';
+            ctx.fillText('KHỐI LƯỢNG /WEIGHT', 866, 214);
+            ctx.font = '700 36px Tahoma, Arial, sans-serif';
+            ctx.fillText(data.quyCach, 866, 246);
+
+            ctx.textAlign = 'left';
+            ctx.font = '700 24px Tahoma, Arial, sans-serif';
+            ctx.fillText('KHÁCH HÀNG/CUSTOMER', 34, 304);
+            ctx.font = '800 34px Tahoma, Arial, sans-serif';
+            ctx.fillText('CHANH THU GROUP', 34, 336);
+
+            ctx.textAlign = 'right';
+            ctx.font = '700 24px Tahoma, Arial, sans-serif';
+            ctx.fillText('STT/INDEX', 866, 304);
+
+            ctx.textAlign = 'left';
+            ctx.font = '700 26px Tahoma, Arial, sans-serif';
+            ctx.fillText('VÙNG NGUYÊN LIỆU', 34, 404);
+            ctx.font = '800 34px Tahoma, Arial, sans-serif';
+            ctx.fillText(data.vungFull, 34, 438);
+
+            ctx.font = '700 30px Tahoma, Arial, sans-serif';
+            ctx.fillText(`Ngày SX: ${data.ngaySX}`, 34, 530);
+            ctx.textAlign = 'right';
+            ctx.fillText(`Ngày ĐG: ${data.ngayDG}`, 866, 530);
+
+            return canvas;
+        }
+
+        async function exportPdfFast(JsPDFCtor, filename, sttDau, count) {
+            const template = createLabelTemplateCanvas(getLabelSnapshotData());
+            const pageCanvas = document.createElement('canvas');
+            pageCanvas.width = template.width;
+            pageCanvas.height = template.height;
+            const pageCtx = pageCanvas.getContext('2d');
+            if (!pageCtx) throw new Error('Không tạo được canvas trang PDF.');
+
+            const doc = new JsPDFCtor({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: [90, 60],
+                compress: true
+            });
+
+            for (let i = 0; i < count; i++) {
+                pageCtx.fillStyle = '#ffffff';
+                pageCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+                pageCtx.drawImage(template, 0, 0);
+
+                pageCtx.fillStyle = '#000000';
+                pageCtx.textAlign = 'right';
+                pageCtx.textBaseline = 'top';
+                pageCtx.font = '800 74px Tahoma, Arial, sans-serif';
+                pageCtx.fillText(String(sttDau + i), 866, 336);
+
+                const imgData = pageCanvas.toDataURL('image/jpeg', 0.72);
+                if (i > 0) doc.addPage([90, 60], 'landscape');
+                doc.addImage(imgData, 'JPEG', 0, 0, 90, 60, undefined, 'FAST');
+
+                // Nhả event loop định kỳ để tránh treo UI khi xuất nhiều trang.
+                if ((i + 1) % 10 === 0) {
+                    await new Promise((resolve) => setTimeout(resolve, 0));
+                }
+            }
+
+            doc.save(filename);
+        }
+
+        async function downloadPdfLabels() {
+            if (isPrinting) {
+                alert('Hệ thống đang xử lý in, vui lòng đợi xong rồi tải PDF.');
+                return;
+            }
+
+            const JsPDFCtor = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : (window.jsPDF || null);
+            const canUseHtml2Pdf = typeof html2pdf !== 'undefined';
+
+            if (!JsPDFCtor && !canUseHtml2Pdf) {
+                alert('Thiếu thư viện xuất PDF. Vui lòng kiểm tra mạng rồi tải lại trang.');
+                return;
+            }
+
+            clearTimeout(productSttLoadTimer);
+            productSttLoadTimer = null;
+
+            updateSttCuoi();
+
+            const sttDau = parseInt(document.getElementById('sttDau').value) || 1;
+            const count = toPositiveInt(document.getElementById('soLuongTem').value, 1);
+            const sttCuoi = sttDau + count - 1;
+            const lot = (document.getElementById('maBTP').value || 'LOT').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+            const filename = `Nhan_${lot}_${sttDau}-${sttCuoi}.pdf`;
+
+            try {
+                if (JsPDFCtor) {
+                    await exportPdfFast(JsPDFCtor, filename, sttDau, count);
+                    return;
+                }
+
+                // Fallback chỉ dùng khi không có jsPDF.
+                const wrapper = document.createElement('div');
+                wrapper.style.position = 'fixed';
+                wrapper.style.left = '0';
+                wrapper.style.top = '0';
+                wrapper.style.background = '#fff';
+                wrapper.style.opacity = '1';
+                wrapper.style.pointerEvents = 'none';
+                wrapper.style.zIndex = '-1';
+
+                const exportStyles = document.createElement('style');
+                exportStyles.textContent = `
+                    .pdf-label {
+                        width: 90mm;
+                        height: 60mm;
+                        padding: 1.2mm 3.5mm 1.8mm 3.5mm;
+                        box-sizing: border-box;
+                        font-family: Tahoma, Arial, sans-serif;
+                        font-size: 9.0pt;
+                        line-height: 1.15;
+                        font-weight: 700;
+                        letter-spacing: -0.2px;
+                        page-break-after: always;
+                    }
+                    .pdf-label:last-child { page-break-after: auto; }
+                `;
+                wrapper.appendChild(exportStyles);
+
+                for (let i = 0; i < count; i++) {
+                    const label = document.createElement('div');
+                    label.className = 'pdf-label';
+                    label.innerHTML = buildLabelHtml(sttDau + i);
+                    wrapper.appendChild(label);
+                }
+
+                document.body.appendChild(wrapper);
+                try {
+                    await html2pdf().set({
+                        margin: 0,
+                        filename,
+                        image: { type: 'jpeg', quality: 0.75 },
+                        html2canvas: { scale: 0.9, useCORS: true, backgroundColor: '#ffffff', logging: false },
+                        pagebreak: { mode: ['css', 'legacy'] },
+                        jsPDF: { unit: 'mm', format: [90, 60], orientation: 'landscape' }
+                    }).from(wrapper).save();
+                } finally {
+                    if (wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
+                }
+            } catch (error) {
+                alert('Lỗi khi tạo PDF: ' + (error?.message || error));
             }
         }
 
