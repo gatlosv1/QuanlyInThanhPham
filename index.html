@@ -808,24 +808,57 @@
             return { sku, maBTP, tenTP, quyCach, vungFull, ngaySX, ngayDG };
         }
 
-        function drawWrappedCenterText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
-            const words = String(text || '').split(/\s+/).filter(Boolean);
-            if (!words.length) return;
+        function wrapTextLines(ctx, text, maxWidth) {
+            const words = String(text || '').trim().split(/\s+/).filter(Boolean);
+            if (!words.length) return [];
+
             const lines = [];
-            let current = words[0] || '';
+            let currentLine = words[0];
+
             for (let i = 1; i < words.length; i++) {
-                const candidate = `${current} ${words[i]}`;
+                const candidate = `${currentLine} ${words[i]}`;
                 if (ctx.measureText(candidate).width <= maxWidth) {
-                    current = candidate;
+                    currentLine = candidate;
                 } else {
-                    lines.push(current);
-                    current = words[i];
-                    if (lines.length >= maxLines - 1) break;
+                    lines.push(currentLine);
+                    currentLine = words[i];
                 }
             }
-            if (lines.length < maxLines && current) lines.push(current);
-            for (let i = 0; i < Math.min(lines.length, maxLines); i++) {
-                ctx.fillText(lines[i], x, y + i * lineHeight);
+
+            if (currentLine) lines.push(currentLine);
+            return lines;
+        }
+
+        function drawFittedWrappedCenterText(ctx, text, centerX, boxTop, boxHeight, maxWidth, maxLines, maxFontSize, minFontSize) {
+            const safeText = String(text || '').trim();
+            if (!safeText) return;
+
+            let chosenSize = minFontSize;
+            let chosenLines = [safeText];
+
+            for (let size = maxFontSize; size >= minFontSize; size--) {
+                ctx.font = `800 ${size}px Tahoma, Arial, sans-serif`;
+                const lines = wrapTextLines(ctx, safeText, maxWidth);
+                if (lines.length <= maxLines) {
+                    chosenSize = size;
+                    chosenLines = lines;
+                    break;
+                }
+                if (size === minFontSize) {
+                    chosenSize = size;
+                    chosenLines = lines.slice(0, maxLines);
+                }
+            }
+
+            const lineHeight = Math.round(chosenSize * 1.08);
+            const totalHeight = chosenLines.length * lineHeight;
+            const startY = boxTop + Math.max(0, Math.floor((boxHeight - totalHeight) / 2));
+
+            ctx.font = `800 ${chosenSize}px Tahoma, Arial, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            for (let i = 0; i < chosenLines.length; i++) {
+                ctx.fillText(chosenLines[i], centerX, startY + i * lineHeight);
             }
         }
 
@@ -853,9 +886,7 @@
             ctx.textAlign = 'right';
             ctx.fillText(`Lot: ${data.maBTP}`, 866, 28);
 
-            ctx.textAlign = 'center';
-            ctx.font = '800 49px Tahoma, Arial, sans-serif';
-            drawWrappedCenterText(ctx, data.tenTP, width / 2, 78, 800, 56, 2);
+            drawFittedWrappedCenterText(ctx, data.tenTP, width / 2, 48, 150, 790, 3, 44, 30);
 
             ctx.beginPath();
             ctx.moveTo(28, 196);
