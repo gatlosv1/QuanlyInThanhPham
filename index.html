@@ -748,6 +748,7 @@
             const sttDau = parseInt(document.getElementById('sttDau').value) || 1;
             const count = toPositiveInt(document.getElementById('soLuongTem').value, 1);
             const sttCuoi = sttDau + count - 1;
+            const labelSnapshot = getLabelSnapshotData();
 
             isPrinting = true;
 
@@ -761,9 +762,9 @@
             `;
 
             try {
-                const labelHtml = [];
+                const labelHtml = new Array(count);
                 for (let i = 0; i < count; i++) {
-                    labelHtml.push(`<div class="label">${buildLabelHtml(sttDau + i)}</div>`);
+                    labelHtml[i] = `<div class="label">${buildLabelHtml(sttDau + i, labelSnapshot)}</div>`;
                 }
 
                 const printHtml = `<html><head><title>${isReprint ? 'In Lại' : 'In Nhãn'}</title>${printStyles}</head><body>${labelHtml.join('')}</body></html>`;
@@ -774,10 +775,10 @@
                     document.getElementById('sttDau').value = nextSTT;
                     updateSttCuoi();
 
-                    await Promise.allSettled([
+                    Promise.allSettled([
                         logPrint(),
                         saveProductSTT(nextSTT, sttDau, sttCuoi)
-                    ]);
+                    ]).catch((e) => console.error(e));
                 } else {
                     alert(`✅ Đã in lại ${count} tem (KHÔNG ghi log - KHÔNG tăng tổng số lượng)`);
                 }
@@ -1300,18 +1301,16 @@
             return regionSelect.value || 'MT';
         }
 
-        function buildLabelHtml(sttValue = '5200') {
-            const sku = (document.getElementById('sku').value || '').trim();
+        function buildLabelHtml(sttValue = '5200', snapshotData = null) {
+            const data = snapshotData || getLabelSnapshotData();
+            const sku = data.sku || '';
             const hasSku = sku.length > 0;
-            const maBTP = document.getElementById('maBTP').value || 'D009MT15066-02-0K';
-            const tenTP = document.getElementById('tenTP').value || 'TP CẤP ĐÔNG SẦU RIÊNG...';
-            const quyCach = document.getElementById('quyCach').value || '20kg';
-            const vungCode = applyRegionFromLot();
-            const vungFull = vungCode === 'BP' ? 'Bình Phước' : vungCode === 'DN' ? 'Đồng Nai' : vungCode === 'DL' ? 'Đắk Lắk' : vungCode === 'LK' ? 'Long Khánh' : 'Miền Tây';
-            const ngaySX = document.getElementById('ngaySX').value ? 
-                document.getElementById('ngaySX').value.split('-').reverse().join('/') : '22/06/2026';
-            const ngayDG = document.getElementById('ngayDG').value ? 
-                document.getElementById('ngayDG').value.split('-').reverse().join('/') : ngaySX;
+            const maBTP = data.maBTP || 'D009MT15066-02-0K';
+            const tenTP = data.tenTP || 'TP CẤP ĐÔNG SẦU RIÊNG...';
+            const quyCach = data.quyCach || '20kg';
+            const vungFull = data.vungFull || 'Miền Tây';
+            const ngaySX = data.ngaySX || '22/06/2026';
+            const ngayDG = data.ngayDG || ngaySX;
 
             return `
                 <div style="font-family: Tahoma, Arial, sans-serif; font-size: 9.0pt; font-weight: 700; line-height: 1.15; padding: 3px 5px; height: 100%; letter-spacing: -0.2px;">
