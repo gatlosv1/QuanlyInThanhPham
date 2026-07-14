@@ -89,13 +89,21 @@
 
                             <label class="block text-sm font-medium mb-1 mt-4">Tên Thành Phẩm</label>
                             <input id="tenTP" type="text" class="w-full px-4 py-3 border rounded-xl" placeholder="TP CẤP ĐÔNG SẦU RIÊNG..." oninput="updatePreview()">
+
+                            <label class="block text-sm font-medium mb-1 mt-4">Tổ/Nhóm</label>
+                            <select id="toSanXuat" class="w-full px-4 py-3 border rounded-xl" onchange="updatePreview()">
+                                <option value="Tèo">Tèo</option>
+                                <option value="Hằng">Hằng</option>
+                                <option value="Nôl">Nôl</option>
+                                <option value="Ly">Ly</option>
+                            </select>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-4 gap-4 mt-6">
-                        <div><label class="block text-sm font-medium mb-1">STT in đầu</label><input id="sttDau" type="number" value="1" class="w-full px-4 py-3 border rounded-xl" oninput="updateSttCuoi()"></div>
+                        <div><label class="block text-sm font-medium mb-1">STT in đầu</label><input id="sttDau" type="number" value="0" class="w-full px-4 py-3 border rounded-xl" oninput="updateSttCuoi()"></div>
                         <div><label class="block text-sm font-medium mb-1">Số lượng tem</label><input id="soLuongTem" type="number" value="1" min="1" class="w-full px-4 py-3 border rounded-xl font-semibold" oninput="updateSttCuoi()"></div>
-                        <div><label class="block text-sm font-medium mb-1">STT in cuối</label><input id="sttCuoi" type="number" value="1" class="w-full px-4 py-3 border rounded-xl bg-gray-50" readonly></div>
+                        <div><label class="block text-sm font-medium mb-1">STT in cuối</label><input id="sttCuoi" type="number" value="0" class="w-full px-4 py-3 border rounded-xl bg-gray-50" readonly></div>
                         <div>
                             <label class="block text-sm font-medium mb-1">Ngày SX</label>
                             <input id="ngaySX" type="date" class="w-full px-4 py-3 border rounded-xl" onchange="updatePreview()">
@@ -401,12 +409,91 @@
             return Number.isFinite(num) && num > 0 ? Math.floor(num) : fallback;
         }
 
+        function toNonNegativeInt(value, fallback = 0) {
+            const num = Number(value);
+            return Number.isFinite(num) && num >= 0 ? Math.floor(num) : fallback;
+        }
+
+        function getVietnamDateKey(date = new Date()) {
+            const parts = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Ho_Chi_Minh',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).formatToParts(date);
+            const values = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+            return `${values.year}-${values.month}-${values.day}`;
+        }
+
+        function getVietnamDateTimeParts(date = new Date()) {
+            const parts = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Ho_Chi_Minh',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hourCycle: 'h23'
+            }).formatToParts(date);
+            const values = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+            return {
+                year: Number(values.year),
+                month: Number(values.month),
+                day: Number(values.day),
+                hour: Number(values.hour),
+                minute: Number(values.minute),
+                second: Number(values.second)
+            };
+        }
+
+        function addDaysToDateKey(dateKey, days) {
+            const [year, month, day] = String(dateKey).split('-').map(Number);
+            const utcDate = new Date(Date.UTC(year, month - 1, day + days));
+            return utcDate.toISOString().slice(0, 10);
+        }
+
+        function getPackagingDateKey(date = new Date()) {
+            const vnParts = getVietnamDateTimeParts(date);
+            const todayKey = `${String(vnParts.year).padStart(4, '0')}-${String(vnParts.month).padStart(2, '0')}-${String(vnParts.day).padStart(2, '0')}`;
+            const secondsOfDay = (vnParts.hour * 3600) + (vnParts.minute * 60) + vnParts.second;
+            const cutoffSeconds = (0 * 3600) + (59 * 60) + 59;
+            return secondsOfDay > cutoffSeconds ? addDaysToDateKey(todayKey, 1) : todayKey;
+        }
+
+        function syncNgayDongGoi() {
+            const ngayDGInput = document.getElementById('ngayDG');
+            if (!ngayDGInput) return;
+
+            const packagingDate = getPackagingDateKey();
+            if (ngayDGInput.value !== packagingDate) {
+                ngayDGInput.value = packagingDate;
+                updatePreview();
+            }
+        }
+
+        function scheduleNgayDongGoiSync() {
+            syncNgayDongGoi();
+            window.setTimeout(scheduleNgayDongGoiSync, 1000);
+        }
+
         function getProductKey() {
             const sku = (document.getElementById('sku').value || '').trim();
             const tenTP = (document.getElementById('tenTP').value || '').trim();
             const maBTP = (document.getElementById('maBTP').value || '').trim();
             const raw = sku || `${tenTP || 'unknown'}_${maBTP || 'unknown'}`;
             return `p_${raw.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+        }
+
+        function getDailyProductCounterKey() {
+            const productKey = getProductKey();
+            return `${getVietnamDateKey()}__${productKey}`;
+        }
+
+        async function ensureCurrentProductCounterLoaded() {
+            const counterKey = getDailyProductCounterKey();
+            if (!counterKey || counterKey === lastLoadedProductKey) return;
+            await loadProductSTT(true);
         }
 
         function scheduleLoadProductSTT() {
@@ -420,16 +507,17 @@
         async function loadProductSTT(force = false) {
             if (isPrinting) return;
             const productKey = getProductKey();
-            if (!productKey || (!force && productKey === lastLoadedProductKey)) return;
+            const counterKey = getDailyProductCounterKey();
+            if (!productKey || !counterKey || (!force && counterKey === lastLoadedProductKey)) return;
 
             try {
-                const doc = await db.collection("productCounters").doc(productKey).get();
+                const doc = await db.collection("productCounters").doc(counterKey).get();
                 const saved = doc.exists ? doc.data() : null;
-                const currentSttDau = toPositiveInt(document.getElementById('sttDau').value, 1);
-                const nextStart = toPositiveInt(saved ? saved.nextSTT : null, currentSttDau);
+                const currentSttDau = toNonNegativeInt(document.getElementById('sttDau').value, 0);
+                const nextStart = toNonNegativeInt(saved ? saved.nextSTT : null, currentSttDau);
                 document.getElementById('sttDau').value = nextStart;
                 updateSttCuoi();
-                lastLoadedProductKey = productKey;
+                lastLoadedProductKey = counterKey;
             } catch (e) {
                 console.error(e);
             }
@@ -437,10 +525,13 @@
 
         async function saveProductSTT(nextSTT, sttDau, sttCuoi) {
             const productKey = getProductKey();
-            if (!productKey) return;
+            const counterKey = getDailyProductCounterKey();
+            if (!productKey || !counterKey) return;
 
             try {
-                await db.collection("productCounters").doc(productKey).set({
+                await db.collection("productCounters").doc(counterKey).set({
+                    counterKey,
+                    counterDate: getVietnamDateKey(),
                     productKey,
                     sku: document.getElementById('sku').value || '',
                     tenTP: document.getElementById('tenTP').value || '',
@@ -450,7 +541,7 @@
                     lastSttCuoi: sttCuoi,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
-                lastLoadedProductKey = productKey;
+                lastLoadedProductKey = counterKey;
             } catch (e) {
                 console.error(e);
             }
@@ -593,7 +684,8 @@
             document.getElementById('sku').value = item.sku || '';
             document.getElementById('tenTP').value = item.tenTP || '';
             document.getElementById('quyCach').value = item.quyCach || '20kg';
-            document.getElementById('sttDau').value = item.sttDau || 1;
+            document.getElementById('toSanXuat').value = item.toSanXuat || 'Tèo';
+            document.getElementById('sttDau').value = Number.isFinite(item.sttDau) ? item.sttDau : 0;
             document.getElementById('soLuongTem').value = item.soLuong || 1;
             updateSttCuoi();
             updatePreview();
@@ -648,11 +740,13 @@
                 maBTP: document.getElementById('maBTP').value || '',
                 sku: document.getElementById('sku').value || '',
                 tenTP: document.getElementById('tenTP').value || '',
+                toSanXuat: document.getElementById('toSanXuat').value || 'Tèo',
                 quyCach: document.getElementById('quyCach').value || '20kg',
                 soLuong: parseInt(document.getElementById('soLuongTem').value) || 1,
-                sttDau: parseInt(document.getElementById('sttDau').value),
-                sttCuoi: parseInt(document.getElementById('sttCuoi').value),
+                sttDau: toNonNegativeInt(document.getElementById('sttDau').value, 0),
+                sttCuoi: toNonNegativeInt(document.getElementById('sttCuoi').value, 0),
                 productKey: getProductKey(),
+                counterDate: getVietnamDateKey(),
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             };
             await db.collection("printHistory").add(data);
@@ -743,9 +837,11 @@
             clearTimeout(productSttLoadTimer);
             productSttLoadTimer = null;
 
+            await ensureCurrentProductCounterLoaded();
+
             updateSttCuoi();
 
-            const sttDau = parseInt(document.getElementById('sttDau').value) || 1;
+            const sttDau = toNonNegativeInt(document.getElementById('sttDau').value, 0);
             const count = toPositiveInt(document.getElementById('soLuongTem').value, 1);
             const sttCuoi = sttDau + count - 1;
             const labelSnapshot = getLabelSnapshotData();
@@ -800,12 +896,13 @@
             const sku = (document.getElementById('sku').value || '').trim();
             const maBTP = (document.getElementById('maBTP').value || 'LOT').trim();
             const tenTP = (document.getElementById('tenTP').value || 'TP CẤP ĐÔNG SẦU RIÊNG...').trim();
+            const toSanXuat = (document.getElementById('toSanXuat').value || 'Tèo').trim();
             const quyCach = (document.getElementById('quyCach').value || '20kg').trim();
             const vungCode = applyRegionFromLot();
             const vungFull = vungCode === 'BP' ? 'Bình Phước' : vungCode === 'DN' ? 'Đồng Nai' : vungCode === 'DL' ? 'Đắk Lắk' : vungCode === 'LK' ? 'Long Khánh' : 'Miền Tây';
             const ngaySX = document.getElementById('ngaySX').value ? document.getElementById('ngaySX').value.split('-').reverse().join('/') : '22/06/2026';
             const ngayDG = document.getElementById('ngayDG').value ? document.getElementById('ngayDG').value.split('-').reverse().join('/') : ngaySX;
-            return { sku, maBTP, tenTP, quyCach, vungFull, ngaySX, ngayDG };
+            return { sku, maBTP, tenTP, toSanXuat, quyCach, vungFull, ngaySX, ngayDG };
         }
 
         function wrapTextLines(ctx, text, maxWidth) {
@@ -908,9 +1005,9 @@
 
             ctx.textAlign = 'left';
             ctx.font = '700 24px Tahoma, Arial, sans-serif';
-            ctx.fillText('KHÁCH HÀNG/CUSTOMER', 34, 304);
+            ctx.fillText('TỔ/NHÓM', 34, 304);
             ctx.font = '800 34px Tahoma, Arial, sans-serif';
-            ctx.fillText('CHANH THU GROUP', 34, 336);
+            ctx.fillText(data.toSanXuat || 'Tèo', 34, 336);
 
             ctx.textAlign = 'right';
             ctx.font = '700 24px Tahoma, Arial, sans-serif';
@@ -986,9 +1083,11 @@
             clearTimeout(productSttLoadTimer);
             productSttLoadTimer = null;
 
+            await ensureCurrentProductCounterLoaded();
+
             updateSttCuoi();
 
-            const sttDau = parseInt(document.getElementById('sttDau').value) || 1;
+            const sttDau = toNonNegativeInt(document.getElementById('sttDau').value, 0);
             const count = toPositiveInt(document.getElementById('soLuongTem').value, 1);
             const sttCuoi = sttDau + count - 1;
             const lot = (document.getElementById('maBTP').value || 'LOT').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -1347,6 +1446,7 @@
             const hasSku = sku.length > 0;
             const maBTP = data.maBTP || 'D009MT15066-02-0K';
             const tenTP = data.tenTP || 'TP CẤP ĐÔNG SẦU RIÊNG...';
+            const toSanXuat = data.toSanXuat || 'Tèo';
             const quyCach = data.quyCach || '20kg';
             const vungFull = data.vungFull || 'Miền Tây';
             const ngaySX = data.ngaySX || '22/06/2026';
@@ -1367,7 +1467,7 @@
                         <div style="text-align: right;"><strong>KHỐI LƯỢNG /WEIGHT</strong><br>${quyCach}</div>
                     </div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-                        <div><strong>KHÁCH HÀNG/CUSTOMER</strong><br>CHANH THU GROUP</div>
+                        <div><strong>TỔ/NHÓM</strong><br>${toSanXuat}</div>
                         <div style="text-align: right;">
                             <strong>STT/INDEX</strong><br>
                             <span style="font-size: 15.8pt; font-weight: 800;">${sttValue}</span>
@@ -1388,6 +1488,7 @@
             const hasSku = sku.length > 0;
             const maBTP = data.maBTP || 'D009MT15066-02-0K';
             const tenTP = data.tenTP || 'TP CẤP ĐÔNG SẦU RIÊNG...';
+            const toSanXuat = data.toSanXuat || 'Tèo';
             const quyCach = data.quyCach || '20kg';
             const vungFull = data.vungFull || 'Miền Tây';
             const ngaySX = data.ngaySX || '22/06/2026';
@@ -1406,7 +1507,7 @@
                         <div class="lbl-right"><strong>KHỐI LƯỢNG /WEIGHT</strong><br>${quyCach}</div>
                     </div>
                     <div class="lbl-row">
-                        <div><strong>KHÁCH HÀNG/CUSTOMER</strong><br>CHANH THU GROUP</div>
+                        <div><strong>TỔ/NHÓM</strong><br>${toSanXuat}</div>
                         <div class="lbl-right"><strong>STT/INDEX</strong><br><span class="lbl-index">${sttValue}</span></div>
                     </div>
                     <div class="lbl-region"><strong>VÙNG NGUYÊN LIỆU</strong><br>${vungFull}</div>
@@ -1430,7 +1531,7 @@
 
         // ==================== TÍNH STT CUỐI ====================
         function updateSttCuoi() {
-            const sttDau = parseInt(document.getElementById('sttDau').value) || 1;
+            const sttDau = toNonNegativeInt(document.getElementById('sttDau').value, 0);
             const soLuong = parseInt(document.getElementById('soLuongTem').value) || 1;
             document.getElementById('sttCuoi').value = sttDau + soLuong - 1;
         }
@@ -1439,10 +1540,10 @@
         function resetSTT() {
             const password = prompt("Nhập mật khẩu để Reset STT:");
             if (password === RESET_PASSWORD) {
-                if (confirm("Reset STT về 1 cho mã này?")) {
-                    document.getElementById('sttDau').value = 1;
+                if (confirm("Reset STT về 0 cho mã này?")) {
+                    document.getElementById('sttDau').value = 0;
                     document.getElementById('soLuongTem').value = 1;
-                    saveProductSTT(1, 1, 1);
+                    saveProductSTT(0, 0, 0);
                     updateSttCuoi();
                     alert("Đã reset STT cho mã này thành công!");
                 }
@@ -1464,9 +1565,11 @@
 
         // ==================== KHỞI TẠO KHI TRANG MỞ ====================
         window.onload = () => {
-            const today = new Date().toISOString().split('T')[0];
+            const today = getVietnamDateKey();
             document.getElementById('ngaySX').value = today;
-            document.getElementById('ngayDG').value = today;
+            document.getElementById('ngayDG').value = getPackagingDateKey();
+
+            scheduleNgayDongGoiSync();
 
             loadProductSTT(true);
             loadPrintHistory();
