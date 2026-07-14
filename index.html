@@ -457,7 +457,7 @@
             const vnParts = getVietnamDateTimeParts(date);
             const todayKey = `${String(vnParts.year).padStart(4, '0')}-${String(vnParts.month).padStart(2, '0')}-${String(vnParts.day).padStart(2, '0')}`;
             const secondsOfDay = (vnParts.hour * 3600) + (vnParts.minute * 60) + vnParts.second;
-            const cutoffSeconds = (0 * 3600) + (59 * 60) + 59;
+            const cutoffSeconds = (23 * 3600) + (59 * 60) + 59;
             return secondsOfDay > cutoffSeconds ? addDaysToDateKey(todayKey, 1) : todayKey;
         }
 
