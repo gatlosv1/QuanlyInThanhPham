@@ -599,6 +599,7 @@
                         <th class="px-4 py-3 text-left">Mã Lot</th>
                         <th class="px-4 py-3 text-left">SKU</th>
                         <th class="px-4 py-3 text-left">Tên TP</th>
+                        <th class="px-4 py-3 text-center">Tổ/Nhóm</th>
                         <th class="px-4 py-3 text-center">Số lượng</th>
                         <th class="px-4 py-3 text-center">STT đầu</th>
                         <th class="px-4 py-3 text-center">STT cuối</th>
@@ -624,6 +625,7 @@
                         <td class="px-4 py-3 font-mono">${item.maBTP || ''}</td>
                         <td class="px-4 py-3 font-mono">${item.sku || ''}</td>
                         <td class="px-4 py-3">${item.tenTP || ''}</td>
+                        <td class="px-4 py-3 text-center">${item.toSanXuat || 'Tèo'}</td>
                         <td class="px-4 py-3 text-center font-semibold">${item.soLuong || 0}</td>
                         <td class="px-4 py-3 text-center font-mono">${item.sttDau || 0}</td>
                         <td class="px-4 py-3 text-center font-mono">${item.sttCuoi || 0}</td>
@@ -725,6 +727,7 @@
                 "Mã Lot": item.maBTP,
                 "SKU": item.sku,
                 "Tên Thành Phẩm": item.tenTP,
+                "Tổ/Nhóm": item.toSanXuat || 'Tèo',
                 "Số lượng tem": item.soLuong,
                 "Quy Cách": item.quyCach,
                 "Tổng khối lượng (kg)": item.soLuong * (parseFloat(item.quyCach) || 20)
