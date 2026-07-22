@@ -805,7 +805,35 @@
                     resolve(result);
                 };
 
-                const handleLoad = () => {
+                const waitForDocumentReady = async () => {
+                    const images = Array.from(doc.images || []);
+                    const imagePromises = images
+                        .filter((img) => !img.complete)
+                        .map((img) => new Promise((resolveImage) => {
+                            const finish = () => resolveImage();
+                            img.addEventListener('load', finish, { once: true });
+                            img.addEventListener('error', finish, { once: true });
+                        }));
+
+                    if (imagePromises.length) {
+                        await Promise.all(imagePromises);
+                    }
+
+                    if (doc.fonts && doc.fonts.ready) {
+                        try {
+                            await Promise.race([
+                                doc.fonts.ready,
+                                new Promise((resolveFontTimeout) => setTimeout(resolveFontTimeout, 1200))
+                            ]);
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    }
+
+                    await new Promise((rafDone) => requestAnimationFrame(() => requestAnimationFrame(rafDone)));
+                };
+
+                const handleLoad = async () => {
                     const printWin = iframe.contentWindow;
                     if (!printWin) {
                         cleanup();
@@ -813,31 +841,32 @@
                         return;
                     }
 
+                    try {
+                        await waitForDocumentReady();
+                    } catch (error) {
+                        console.error(error);
+                    }
+
                     printWin.onafterprint = () => {
-                        if (waitForAfterPrint) {
-                            complete({ status: 'afterprint' });
-                            return;
-                        }
-                        setTimeout(cleanup, 900);
+                        complete({ status: 'afterprint' });
                     };
 
                     setTimeout(() => {
                         try {
-                            // Không chờ afterprint để đẩy tốc độ phản hồi nhanh nhất.
+                            printWin.focus();
                             printWin.print();
                             if (!waitForAfterPrint) {
                                 complete({ status: 'print-started' });
-                                setTimeout(cleanup, 900);
                             }
                         } catch (error) {
                             cleanup();
                             reject(error);
                         }
-                    }, 0);
+                    }, 80);
 
                     if (waitForAfterPrint) {
-                        // Một số trình duyệt/driver không bắn afterprint, nên fallback tự dọn.
-                        setTimeout(() => complete({ status: 'timeout-fallback' }), 2500);
+                        // Một số trình duyệt/driver không bắn afterprint, tăng timeout để tránh cắt ngang lệnh in.
+                        setTimeout(() => complete({ status: 'timeout-fallback' }), 20000);
                     }
                 };
 
@@ -869,14 +898,42 @@
             const printStyles = `
                 <style>
                     @page { size: 90mm 60mm; margin: 0mm !important; }
-                    body { margin: 0 !important; padding: 0 !important; font-family: Tahoma, Arial, sans-serif; font-weight: 700; letter-spacing: -0.2px; }
-                    .label { width: 90mm; height: 60mm; box-sizing: border-box; page-break-after: always; }
+                    html, body {
+                        width: 90mm;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        background: #ffffff !important;
+                        color: #000000 !important;
+                        font-family: Tahoma, Arial, sans-serif;
+                        font-weight: 700;
+                        letter-spacing: -0.2px;
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                    .label {
+                        width: 90mm;
+                        height: 60mm;
+                        display: block;
+                        box-sizing: border-box;
+                        overflow: hidden;
+                        background: #ffffff !important;
+                        color: #000000 !important;
+                        page-break-after: always;
+                    }
                     .label:last-child { page-break-after: auto; }
-                    .lbl-inner { padding: 1.2mm 3.5mm 1.8mm 3.5mm; height: 100%; box-sizing: border-box; font-size: 9.0pt; line-height: 1.15; }
+                    .lbl-inner {
+                        padding: 1.2mm 3.5mm 1.8mm 3.5mm;
+                        height: 100%;
+                        box-sizing: border-box;
+                        background: #ffffff !important;
+                        color: #000000 !important;
+                        font-size: 9.0pt;
+                        line-height: 1.15;
+                    }
                     .lbl-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
                     .lbl-top { font-size: 7.8pt; font-weight: 700; }
                     .lbl-name { font-size: 12.8pt; font-weight: 800; text-align: center; margin: 4px 0 6px; line-height: 1.05; }
-                    .lbl-rule { border: 1px solid #000; margin: 3px 0 5px; }
+                    .lbl-rule { border: 0; border-top: 1px solid #000; margin: 3px 0 5px; }
                     .lbl-right { text-align: right; }
                     .lbl-index { font-size: 15.8pt; font-weight: 800; }
                     .lbl-region { margin-bottom: 3px; font-weight: 700; }
