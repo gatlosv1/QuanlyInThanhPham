@@ -88,6 +88,7 @@
                                     <option value="BP">BP - Bình Phước</option> 
                                     <option value="DN">DN - Đồng Nai</option>
                                     <option value="DL">DL - Đắk Lắk</option>
+                                    <option value="GL">GL - Gia Lai</option>
                                     <option value="KH">KH - Khánh Hòa</option>
                                     <option value="LK">LK - Long Khánh</option>
                                 </select>
@@ -1612,6 +1613,7 @@
             if (upperLot.includes('BP')) return 'BP';
             if (upperLot.includes('DN') || upperLot.includes('DONG NAI')) return 'DN';
             if (upperLot.includes('DL') || upperLot.includes('DAKLAK') || upperLot.includes('DAK LAK')) return 'DL';
+            if (upperLot.includes('GL') || upperLot.includes('GIALAI') || upperLot.includes('GIA LAI')) return 'GL';
             if (upperLot.includes('KH') || upperLot.includes('KHANHHOA') || upperLot.includes('KHANH HOA')) return 'KH';
             if (upperLot.includes('LK') || upperLot.includes('LONGKHANH') || upperLot.includes('LONG KHANH')) return 'LK';
             if (upperLot.includes('MT') || upperLot.includes('MIEN TAY')) return 'MT';
