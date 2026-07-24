@@ -174,8 +174,13 @@
                         <div class="p-4 border-b bg-emerald-50/40">
                             <div class="grid grid-cols-12 gap-2">
                                 <input id="addStt" type="number" min="1" placeholder="STT" class="col-span-2 px-3 py-2 border rounded-xl">
-                                <input id="addSku" type="text" placeholder="Mã SKU" class="col-span-4 px-3 py-2 border rounded-xl font-mono">
-                                <input id="addTenTP" type="text" placeholder="Tên TP" class="col-span-4 px-3 py-2 border rounded-xl">
+                                <input id="addSku" type="text" placeholder="Mã SKU" class="col-span-3 px-3 py-2 border rounded-xl font-mono">
+                                <input id="addTenTP" type="text" placeholder="Tên TP" class="col-span-3 px-3 py-2 border rounded-xl">
+                                <select id="addLoai" class="col-span-2 px-3 py-2 border rounded-xl">
+                                    <option value="">Loại (tự nhận)</option>
+                                    <option value="Đô">Đô</option>
+                                    <option value="Ri">Ri</option>
+                                </select>
                                 <button onclick="addThanhPhamManual()" class="col-span-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2">
                                     <i class="fas fa-plus"></i> Thêm
                                 </button>
@@ -359,7 +364,7 @@
             document.getElementById('maBTP').value = maLo;
             syncControlsFromLot();
             closeLotModal();
-            updatePreview();
+            updatePreview();0
         };
 
         // ==================== PHẦN CHÍNH: FIREBASE VÀ DỮ LIỆU ====================
@@ -1271,26 +1276,31 @@
                     const sttHeaderIndex = headerRow.findIndex(h => ['stt', 'sothutu'].includes(h));
                     const maSpHeaderIndex = headerRow.findIndex(h => ['masp', 'sku', 'masanpham'].includes(h));
                     const tenTpHeaderIndex = headerRow.findIndex(h => ['tentp', 'tenthanhpham'].includes(h));
+                    const loaiHeaderIndex = headerRow.findIndex(h => ['loai', 'loaihang', 'loaithanhpham'].includes(h));
 
-                    const hasHeader = maSpHeaderIndex !== -1 || tenTpHeaderIndex !== -1;
+                    const hasHeader = maSpHeaderIndex !== -1 || tenTpHeaderIndex !== -1 || loaiHeaderIndex !== -1;
                     const startRow = hasHeader ? 1 : 0;
                     const sttIndex = sttHeaderIndex !== -1 ? sttHeaderIndex : 0;
                     const defaultMaSpIndex = rows[0] && rows[0].length >= 3 ? 1 : 0;
                     const defaultTenTpIndex = rows[0] && rows[0].length >= 3 ? 2 : 1;
+                    const defaultLoaiIndex = rows[0] && rows[0].length >= 4 ? 3 : -1;
                     const maSpIndex = maSpHeaderIndex !== -1 ? maSpHeaderIndex : defaultMaSpIndex;
                     const tenTpIndex = tenTpHeaderIndex !== -1 ? tenTpHeaderIndex : defaultTenTpIndex;
+                    const loaiIndex = loaiHeaderIndex !== -1 ? loaiHeaderIndex : defaultLoaiIndex;
 
                     const newProducts = [];
                     for (let i = startRow; i < rows.length; i++) {
                         const row = rows[i] || [];
                         const maSP = String(row[maSpIndex] || '').trim();
                         const tenTP = String(row[tenTpIndex] || '').trim();
-                        if (!maSP) continue;
+                        const loai = normalizeProductLoai(loaiIndex >= 0 ? row[loaiIndex] : '', tenTP);
+                        if (!maSP && !tenTP) continue;
 
                         newProducts.push({
                             stt: parseInt(row[sttIndex], 10) || (newProducts.length + 1),
                             maSP,
                             tenTP,
+                            loai,
                             timestamp: new Date().toISOString()
                         });
                     }
@@ -1325,6 +1335,7 @@
 
             const maSP = String(document.getElementById('sku').value || '').trim();
             const tenTP = String(document.getElementById('tenTP').value || '').trim();
+            const loai = normalizeProductLoai(document.getElementById('loaiHang')?.value || '', tenTP);
 
             if (!tenTP) {
                 alert('Vui lòng nhập Tên Thành Phẩm trước khi thêm!');
@@ -1340,6 +1351,7 @@
                         await db.collection('thanhpham').doc(doc.id).set({
                             maSP,
                             tenTP,
+                            loai,
                             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                         }, { merge: true });
                         alert('✅ Đã cập nhật thành phẩm đã tồn tại trong danh sách!');
@@ -1356,6 +1368,7 @@
                     stt: maxStt + 1,
                     maSP,
                     tenTP,
+                    loai,
                     timestamp: new Date().toISOString(),
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
@@ -1377,6 +1390,8 @@
             const stt = parseInt(document.getElementById('addStt').value, 10);
             const maSP = String(document.getElementById('addSku').value || '').trim();
             const tenTP = String(document.getElementById('addTenTP').value || '').trim();
+            const loaiInput = String(document.getElementById('addLoai').value || '').trim();
+            const loai = normalizeProductLoai(loaiInput, tenTP);
 
             if (!Number.isInteger(stt) || stt <= 0) {
                 alert('Vui lòng nhập STT hợp lệ (> 0)!');
@@ -1396,6 +1411,7 @@
                             stt,
                             maSP,
                             tenTP,
+                            loai,
                             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                         }, { merge: true });
                         alert('✅ SKU đã tồn tại, đã cập nhật STT và Tên TP!');
@@ -1404,6 +1420,7 @@
                             stt,
                             maSP,
                             tenTP,
+                            loai,
                             timestamp: new Date().toISOString(),
                             createdAt: firebase.firestore.FieldValue.serverTimestamp()
                         });
@@ -1414,6 +1431,7 @@
                         stt,
                         maSP,
                         tenTP,
+                        loai,
                         timestamp: new Date().toISOString(),
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
@@ -1423,6 +1441,7 @@
                 document.getElementById('addStt').value = '';
                 document.getElementById('addSku').value = '';
                 document.getElementById('addTenTP').value = '';
+                document.getElementById('addLoai').value = '';
             } catch (error) {
                 alert('Lỗi khi thêm thành phẩm: ' + error.message);
             }
@@ -1483,6 +1502,14 @@
             const p = products[index];
             document.getElementById('sku').value = p.maSP || '';
             document.getElementById('tenTP').value = p.tenTP || '';
+
+            const loaiHang = document.getElementById('loaiHang');
+            if (loaiHang && p.loai) {
+                loaiHang.value = p.loai === 'Ri' ? 'R' : 'D';
+                handleLotRuleChange();
+                return;
+            }
+
             updatePreview();
         }
 
@@ -1506,6 +1533,31 @@
         function normalizeLoaiHangCode(value) {
             const code = String(value || '').trim().toUpperCase();
             return code === 'R' ? 'R' : 'D';
+        }
+
+        function normalizeTextForCompare(value) {
+            return String(value || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g, 'd')
+                .replace(/Đ/g, 'D')
+                .toLowerCase();
+        }
+
+        function inferLoaiFromTenTP(tenTP) {
+            const normalized = normalizeTextForCompare(tenTP).replace(/[^a-z0-9]/g, '');
+            if (normalized.includes('monthong')) return 'Đô';
+            if (normalized.includes('ri6') || normalized.includes('sauriengri6')) return 'Ri';
+            return '';
+        }
+
+        function normalizeProductLoai(loaiValue, tenTP = '') {
+            const normalizedLoai = normalizeTextForCompare(loaiValue).replace(/[^a-z0-9]/g, '');
+
+            if (['d', 'do', 'doa', 'dona', 'monthong'].includes(normalizedLoai)) return 'Đô';
+            if (['r', 'ri', 'ri6'].includes(normalizedLoai)) return 'Ri';
+
+            return inferLoaiFromTenTP(tenTP);
         }
 
         function normalizeNhaSXCode(value) {
