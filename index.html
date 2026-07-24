@@ -26,6 +26,7 @@
         }
         .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 2000; align-items: center; justify-content: center; }
         .modal-content { background: white; border-radius: 12px; width: 90%; max-width: 620px; max-height: 85vh; overflow: hidden; }
+        .modal-content-wide { max-width: 1200px; }
         .report-card {
             background: linear-gradient(135deg, #121f32, #111827);
             color: white;
@@ -101,7 +102,12 @@
                             <input id="sku" type="text" class="w-full px-4 py-3 border rounded-xl font-mono text-base" placeholder="TP101020203.01.001" oninput="updatePreview()">
 
                             <label class="block text-sm font-medium mb-1 mt-4">Tên Thành Phẩm</label>
-                            <input id="tenTP" type="text" class="w-full px-4 py-3 border rounded-xl" placeholder="TP CẤP ĐÔNG SẦU RIÊNG..." oninput="updatePreview()">
+                            <div class="flex items-center gap-2">
+                                <input id="tenTP" type="text" class="flex-1 min-w-0 px-4 py-3 border rounded-xl" placeholder="TP CẤP ĐÔNG SẦU RIÊNG..." oninput="updatePreview()">
+                                <button onclick="openProductModal()" class="shrink-0 px-3 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold whitespace-nowrap">
+                                    <i class="fas fa-boxes"></i> DS TP
+                                </button>
+                            </div>
 
                             <label class="block text-sm font-medium mb-1 mt-4">Tổ/Nhóm</label>
                             <select id="toSanXuat" class="w-full px-4 py-3 border rounded-xl" onchange="updatePreview()">
@@ -130,8 +136,8 @@
                     </div>
 
                     <div class="mt-8 flex gap-4">
-                        <button onclick="loadFromGrid()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-xl font-medium">
-                            <i class="fas fa-search"></i> Chọn từ Danh sách
+                        <button onclick="openProductModal()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-xl font-medium">
+                            <i class="fas fa-search"></i> Mở danh sách Thành Phẩm
                         </button>
                         <button onclick="resetSTT()" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-medium">
                             <i class="fas fa-undo"></i> Reset STT
@@ -160,47 +166,6 @@
                         <h2 class="text-xl font-semibold mb-4">Xem Trước Nhãn (90mm × 60mm)</h2>
                         <div class="flex justify-center bg-gray-50 p-6 rounded-xl">
                             <div id="previewLabel" class="label-preview"></div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-2xl shadow overflow-hidden">
-                        <div class="px-6 py-4 bg-gray-50 border-b flex justify-between items-center">
-                            <h3 class="font-semibold">Danh sách Thành Phẩm</h3>
-                            <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl flex items-center gap-2 text-sm">
-                                <i class="fas fa-upload"></i> Import Excel
-                                <input type="file" id="excelFile" accept=".xlsx,.xls" class="hidden" onchange="importExcel(this)">
-                            </label>
-                        </div>
-                        <div class="p-4 border-b bg-emerald-50/40">
-                            <div class="grid grid-cols-12 gap-2">
-                                <input id="addStt" type="number" min="1" placeholder="STT" class="col-span-2 px-3 py-2 border rounded-xl">
-                                <input id="addSku" type="text" placeholder="Mã SKU" class="col-span-3 px-3 py-2 border rounded-xl font-mono">
-                                <input id="addTenTP" type="text" placeholder="Tên TP" class="col-span-3 px-3 py-2 border rounded-xl">
-                                <select id="addLoai" class="col-span-2 px-3 py-2 border rounded-xl">
-                                    <option value="">Loại (tự nhận)</option>
-                                    <option value="Đô">Đô</option>
-                                    <option value="Ri">Ri</option>
-                                </select>
-                                <button onclick="addThanhPhamManual()" class="col-span-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2">
-                                    <i class="fas fa-plus"></i> Thêm
-                                </button>
-                            </div>
-                        </div>
-                        <div class="p-4">
-                            <input id="searchInput" type="text" placeholder="Tìm mã SP hoặc tên..." class="w-full px-4 py-3 border rounded-xl" onkeyup="filterGrid()">
-                        </div>
-                        <div class="max-h-96 overflow-auto">
-                            <table id="dataGrid" class="w-full text-sm">
-                                <thead class="bg-gray-50 sticky top-0">
-                                    <tr>
-                                        <th class="px-4 py-3 text-left">STT</th>
-                                        <th class="px-4 py-3 text-left">Mã SP</th>
-                                        <th class="px-4 py-3 text-left">Tên TP</th>
-                                        <th class="px-4 py-3 text-center">Thao tác</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="gridBody"></tbody>
-                            </table>
                         </div>
                     </div>
                 </div>
@@ -288,6 +253,58 @@
         </div>
     </div>
 
+    <!-- Modal Danh sách Thành Phẩm -->
+    <div id="productModal" class="modal">
+        <div class="modal-content modal-content-wide">
+            <div class="p-6 border-b flex flex-wrap justify-between items-center gap-3 bg-gray-50">
+                <h3 class="text-xl font-bold">📦 Danh sách Thành Phẩm</h3>
+                <div class="flex gap-2">
+                    <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 text-sm">
+                        <i class="fas fa-upload"></i> Import Excel
+                        <input type="file" id="excelFile" accept=".xlsx,.xls" class="hidden" onchange="importExcel(this)">
+                    </label>
+                    <button onclick="closeProductModal()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-xl text-sm font-medium">
+                        Đóng
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-4 border-b bg-emerald-50/40">
+                <div class="grid grid-cols-12 gap-2">
+                    <input id="addStt" type="number" min="1" placeholder="STT" class="col-span-2 px-3 py-2 border rounded-xl">
+                    <input id="addSku" type="text" placeholder="Mã SKU" class="col-span-3 px-3 py-2 border rounded-xl font-mono">
+                    <input id="addTenTP" type="text" placeholder="Tên TP" class="col-span-3 px-3 py-2 border rounded-xl">
+                    <select id="addLoai" class="col-span-2 px-3 py-2 border rounded-xl">
+                        <option value="">Loại (tự nhận)</option>
+                        <option value="Đô">Đô</option>
+                        <option value="Ri">Ri</option>
+                    </select>
+                    <button onclick="addThanhPhamManual()" class="col-span-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+                        <i class="fas fa-plus"></i> Thêm
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-4 border-b">
+                <input id="searchInput" type="text" placeholder="Tìm mã SP hoặc tên..." class="w-full px-4 py-3 border rounded-xl" onkeyup="filterGrid()">
+            </div>
+
+            <div class="max-h-[500px] overflow-auto">
+                <table id="dataGrid" class="w-full text-sm">
+                    <thead class="bg-gray-50 sticky top-0">
+                        <tr>
+                            <th class="px-4 py-3 text-left">STT</th>
+                            <th class="px-4 py-3 text-left">Mã SP</th>
+                            <th class="px-4 py-3 text-left">Tên TP</th>
+                            <th class="px-4 py-3 text-center">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gridBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ==================== PHẦN CHỌN LOT TỪ LỊCH SỬ CŨ ====================
         const oldConfig = {
@@ -322,6 +339,20 @@
 
         function closeLotModal() {
             document.getElementById('lotModal').style.display = 'none';
+        }
+
+        function openProductModal() {
+            const modal = document.getElementById('productModal');
+            if (!modal) return;
+            modal.style.display = 'flex';
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) searchInput.focus();
+        }
+
+        function closeProductModal() {
+            const modal = document.getElementById('productModal');
+            if (!modal) return;
+            modal.style.display = 'none';
         }
 
         function renderLotList(filtered = historyLots) {
@@ -364,7 +395,7 @@
             document.getElementById('maBTP').value = maLo;
             syncControlsFromLot();
             closeLotModal();
-            updatePreview();0
+            updatePreview();
         };
 
         // ==================== PHẦN CHÍNH: FIREBASE VÀ DỮ LIỆU ====================
@@ -1495,11 +1526,9 @@
         }
 
         // ==================== CHỌN DÒNG SẢN PHẨM ====================
-        function selectRow(index, row) {
-            document.querySelectorAll('#dataGrid tr').forEach(r => r.classList.remove('selected'));
-            row.classList.add('selected');
-            selectedIndex = index;
-            const p = products[index];
+        function applySelectedProduct(p) {
+            if (!p) return;
+
             document.getElementById('sku').value = p.maSP || '';
             document.getElementById('tenTP').value = p.tenTP || '';
 
@@ -1507,16 +1536,30 @@
             if (loaiHang && p.loai) {
                 loaiHang.value = p.loai === 'Ri' ? 'R' : 'D';
                 handleLotRuleChange();
-                return;
+            } else {
+                updatePreview();
             }
+        }
 
-            updatePreview();
+        function selectRow(index, row) {
+            document.querySelectorAll('#dataGrid tr').forEach(r => r.classList.remove('selected'));
+            row.classList.add('selected');
+            selectedIndex = index;
+            const p = products[index] || null;
+            applySelectedProduct(p);
+            closeProductModal();
         }
 
         // ==================== LOAD DỮ LIỆU TỪ BẢNG ====================
         function loadFromGrid() {
-            if (selectedIndex < 0) return alert("Vui lòng click vào một dòng!");
-            alert("Đã load dữ liệu!");
+            if (selectedIndex < 0) return;
+
+            const p = products[selectedIndex] || null;
+            if (!p) return;
+
+            applySelectedProduct(p);
+
+            closeProductModal();
         }
 
         // ==================== TÌM KIẾM TRONG DANH SÁCH ====================
