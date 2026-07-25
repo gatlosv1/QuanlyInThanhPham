@@ -95,6 +95,7 @@
                                     <option value="GL">GL - Gia Lai</option>
                                     <option value="KH">KH - Khánh Hòa</option>
                                     <option value="LK">LK - Long Khánh</option>
+                                    <option value="TN">TN - Tây Ninh</option>
                                 </select>
                                 
                             </div>
@@ -309,7 +310,7 @@
             </div>
         </div>
     </div>
-
+    
     <script>
         // ==================== PHẦN CHỌN LOT TỪ LỊCH SỬ CŨ ====================
         const oldConfig = {
@@ -1729,6 +1730,7 @@
             if (upperLot.includes('GL') || upperLot.includes('GIALAI') || upperLot.includes('GIA LAI')) return 'GL';
             if (upperLot.includes('KH') || upperLot.includes('KHANHHOA') || upperLot.includes('KHANH HOA')) return 'KH';
             if (upperLot.includes('LK') || upperLot.includes('LONGKHANH') || upperLot.includes('LONG KHANH')) return 'LK';
+            if (upperLot.includes('TN') || upperLot.includes('TAYNINH') || upperLot.includes('TAY NINH')) return 'TN';
             if (upperLot.includes('MT') || upperLot.includes('MIEN TAY')) return 'MT';
             return null;
         }
