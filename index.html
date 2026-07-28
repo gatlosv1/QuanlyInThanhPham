@@ -89,13 +89,8 @@
                                 <label class="block text-sm font-medium mb-1">VÙNG NGUYÊN LIỆU</label>
                                 <select id="vungNguyenLieu" class="w-full px-4 py-3 border rounded-xl" onchange="handleRegionChange()">
                                     <option value="MT">MT - Miền Tây</option>
-                                    <option value="BP">BP - Bình Phước</option> 
-                                    <option value="DN">DN - Đồng Nai</option>
-                                    <option value="DL">DL - Đắk Lắk</option>
-                                    <option value="GL">GL - Gia Lai</option>
-                                    <option value="KH">KH - Khánh Hòa</option>
-                                    <option value="LK">LK - Long Khánh</option>
-                                    <option value="TN">TN - Tây Ninh</option>
+                                    <option value="MD">MD - Miền Đông</option>
+                                    <option value="TN">TN - Tây Nguyên</option>
                                 </select>
                                 
                             </div>
@@ -532,12 +527,14 @@
                 if (ngayDGInput.value !== packagingDate) {
                     ngayDGInput.value = packagingDate;
                 }
+                updateLotByRules();
                 updatePreview();
             }
         }
 
         function handleNgayDongGoiInput() {
             packagingDateEditedByUser = true;
+            updateLotByRules();
             updatePreview();
         }
 
@@ -1633,9 +1630,31 @@
 
         function getRegionCodeForLot(regionValue) {
             const code = String(regionValue || 'MT').trim().toUpperCase();
-            // Quy ước riêng: Long Khánh dùng mã DN trên Lot.
-            if (code === 'LK') return 'DN';
-            return code || 'MT';
+            if (code === 'MT' || code === 'MD' || code === 'TN') {
+                return code;
+            }
+            return 'MT';
+        }
+
+        function getPackagingDateCode(dateValue = null) {
+            const dateInputValue = dateValue || document.getElementById('ngayDG')?.value;
+            let dateObj = null;
+
+            if (dateInputValue) {
+                const [year, month, day] = String(dateInputValue).split('-').map(Number);
+                if (Number.isInteger(year) && Number.isInteger(month) && Number.isInteger(day)) {
+                    dateObj = new Date(Date.UTC(year, month - 1, day));
+                }
+            }
+
+            if (!dateObj) {
+                dateObj = new Date();
+            }
+
+            const day = String(dateObj.getUTCDate()).padStart(2, '0');
+            const month = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+            const yearLastDigit = String(dateObj.getUTCFullYear()).slice(-1);
+            return `${day}${month}${yearLastDigit}`;
         }
 
         function parseLotCode(lotValue) {
@@ -1683,7 +1702,6 @@
             if (!lotInput || !loaiHang || !nhaSX || !regionSelect) return;
 
             const parsed = parseLotCode(lotInput.value);
-            const tail = parsed ? parsed.tail : '';
             const loaiCode = normalizeLoaiHangCode(loaiHang.value);
             if (!loaiCode) {
                 // Sản phẩm không có loại (vd: xoài): giữ nguyên Lot người dùng nhập.
@@ -1691,8 +1709,11 @@
             }
             const nhaSXCode = normalizeNhaSXCode(nhaSX.value);
             const regionCode = getRegionCodeForLot(regionSelect.value);
+            const dateCode = getPackagingDateCode();
+            const existingDateCodeMatch = parsed && parsed.tail ? parsed.tail.match(/^(\d{5})(.*)$/) : null;
+            const tail = existingDateCodeMatch ? existingDateCodeMatch[2] : (parsed ? parsed.tail : '');
 
-            const nextLot = `${loaiCode}${nhaSXCode}${regionCode}${tail}`;
+            const nextLot = `${loaiCode}${nhaSXCode}${regionCode}${dateCode}${tail}`;
             if (lotInput.value !== nextLot) {
                 lotInput.value = nextLot;
             }
@@ -1732,13 +1753,8 @@
         function getRegionFromLot(lot) {
             if (!lot) return null;
             const upperLot = lot.toUpperCase();
-            if (upperLot.includes('BP')) return 'BP';
-            if (upperLot.includes('DN') || upperLot.includes('DONG NAI')) return 'DN';
-            if (upperLot.includes('DL') || upperLot.includes('DAKLAK') || upperLot.includes('DAK LAK')) return 'DL';
-            if (upperLot.includes('GL') || upperLot.includes('GIALAI') || upperLot.includes('GIA LAI')) return 'GL';
-            if (upperLot.includes('KH') || upperLot.includes('KHANHHOA') || upperLot.includes('KHANH HOA')) return 'KH';
-            if (upperLot.includes('LK') || upperLot.includes('LONGKHANH') || upperLot.includes('LONG KHANH')) return 'LK';
-            if (upperLot.includes('TN') || upperLot.includes('TAYNINH') || upperLot.includes('TAY NINH')) return 'TN';
+            if (upperLot.includes('TN') || upperLot.includes('TAY NGUYEN') || upperLot.includes('TÂY NGUYÊN')) return 'TN';
+            if (upperLot.includes('MD') || upperLot.includes('MIEN DONG')) return 'MD';
             if (upperLot.includes('MT') || upperLot.includes('MIEN TAY')) return 'MT';
             return null;
         }
