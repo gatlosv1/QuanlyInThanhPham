@@ -39,7 +39,14 @@
     </head>
     <body class="bg-gray-100">
         <div class="max-w-7xl mx-auto p-6">
-            <h1 class="text-3xl font-bold text-center mb-2 text-gray-800">HỆ THỐNG IN NHÃN THÀNH PHẨM</h1>
+            <div class="grid grid-cols-[44px_minmax(0,1fr)_44px] items-start gap-2">
+                <span aria-hidden="true"></span>
+                <h1 class="text-2xl md:text-3xl font-bold text-center mb-2 text-gray-800">HỆ THỐNG IN NHÃN THÀNH PHẨM</h1>
+                <button onclick="openDropdownAdmin()" title="Quản lý danh mục"
+                        class="w-11 h-11 bg-gray-700 hover:bg-gray-800 text-white rounded-xl flex items-center justify-center">
+                    <i class="fas fa-gear"></i>
+                </button>
+            </div>
             <div id="firebaseStatus" class="text-center text-sm text-gray-600 mb-6">Đang kiểm tra kết nối Firebase...</div>
 
             <!-- Tabs -->
@@ -73,25 +80,17 @@
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium mb-1">Nhà SX</label>
-                                        <input id="nhaSX" type="text" value="009" maxlength="3" inputmode="numeric" pattern="[0-9]*" class="w-full px-4 py-3 border rounded-xl font-mono" oninput="handleNhaSXInput()">
+                                        <select id="nhaSX" class="w-full px-4 py-3 border rounded-xl font-mono" onchange="handleNhaSXInput()"></select>
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium mb-1">Loại Hàng</label>
-                                        <select id="loaiHang" class="w-full px-4 py-3 border rounded-xl" onchange="handleLotRuleChange()">
-                                            <option value="">Không loại/Khác</option>
-                                            <option value="D">Dona (D)</option>
-                                            <option value="R">Ri (R)</option>
-                                        </select>
+                                        <select id="loaiHang" class="w-full px-4 py-3 border rounded-xl" onchange="handleLotRuleChange()"></select>
                                     </div>
                                 </div>
 
                                 <div class="mt-6">
                                     <label class="block text-sm font-medium mb-1">VÙNG NGUYÊN LIỆU</label>
-                                    <select id="vungNguyenLieu" class="w-full px-4 py-3 border rounded-xl" onchange="handleRegionChange()">
-                                        <option value="MT">MT - Miền Tây</option>
-                                        <option value="MD">MD - Miền Đông</option>
-                                        <option value="TN">TN - Tây Nguyên</option>
-                                    </select>
+                                    <select id="vungNguyenLieu" class="w-full px-4 py-3 border rounded-xl" onchange="handleRegionChange()"></select>
                                     
                                 </div>
                             </div>
@@ -109,13 +108,7 @@
                                 </div>
 
                                 <label class="block text-sm font-medium mb-1 mt-4">Tổ/Nhóm</label>
-                                <select id="toSanXuat" class="w-full px-4 py-3 border rounded-xl" onchange="updatePreview()">
-                                    <option value="Tèo">Tèo</option>
-                                    <option value="Nguyên">Nguyên</option>
-                                    <option value="Ly">Ly</option>
-                                    <option value="Tuấn">Tuấn</option>
-                                    <option value="Lyka">Lyka</option>
-                                </select>
+                                <select id="toSanXuat" class="w-full px-4 py-3 border rounded-xl" onchange="updatePreview()"></select>
                             </div>
                         </div>
 
@@ -225,6 +218,20 @@
                         <table id="historyTable" class="w-full text-sm"></table>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Modal Quản lý danh mục -->
+        <div id="dropdownAdminModal" class="modal">
+            <div class="modal-content modal-content-wide">
+                <div class="p-6 border-b flex justify-between items-center bg-gray-50">
+                    <div>
+                        <h3 class="text-xl font-bold">Quản lý danh mục</h3>
+                        <p class="text-sm text-gray-500 mt-1">Thêm hoặc xóa item trong các ô chọn</p>
+                    </div>
+                    <button onclick="closeDropdownAdmin()" title="Đóng" class="w-10 h-10 text-2xl hover:text-red-600">&times;</button>
+                </div>
+                <div id="dropdownAdminGroups" class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 max-h-[calc(100vh-150px)] overflow-auto"></div>
             </div>
         </div>
 
@@ -427,6 +434,27 @@
             let db;
             let firebaseReady = false;
             let counterRef = null;
+            const DEFAULT_DROPDOWNS = {
+                toSanXuat: ["Tèo", "Nguyên", "Ly", "Tuấn", "Lyka"],
+                nhaSX: ["009"],
+                loaiHang: [
+                    { value: "", label: "Không loại/Khác" },
+                    { value: "D", label: "Dona (D)" },
+                    { value: "R", label: "Ri (R)" }
+                ],
+                vungNguyenLieu: [
+                    { value: "MT", label: "MT - Miền Tây" },
+                    { value: "MD", label: "MD - Miền Đông" },
+                    { value: "TN", label: "TN - Tây Nguyên" }
+                ]
+            };
+            let currentDropdownSettings = normalizeDropdownSettings(DEFAULT_DROPDOWNS);
+            const DROPDOWN_GROUPS = [
+                { key: 'toSanXuat', title: 'Tổ/Nhóm', structured: false, valuePlaceholder: 'Tên tổ/nhóm' },
+                { key: 'nhaSX', title: 'Nhà sản xuất', structured: false, valuePlaceholder: 'Mã nhà sản xuất' },
+                { key: 'loaiHang', title: 'Loại hàng', structured: true, valuePlaceholder: 'Mã (VD: D)', labelPlaceholder: 'Tên hiển thị' },
+                { key: 'vungNguyenLieu', title: 'Vùng nguyên liệu', structured: true, valuePlaceholder: 'Mã (VD: MT)', labelPlaceholder: 'Tên hiển thị' }
+            ];
 
             /** Cập nhật thông báo trạng thái kết nối Firebase trên giao diện. */
             function setFirebaseStatus(message, isError = false) {
@@ -434,6 +462,231 @@
                 if (!el) return;
                 el.textContent = message;
                 el.className = `text-center text-sm mb-6 ${isError ? 'text-red-600' : 'text-gray-600'}`;
+            }
+
+            /** Chuẩn hóa cấu hình dropdown và dùng mặc định cho trường thiếu hoặc không hợp lệ. */
+            function normalizeDropdownSettings(data = {}) {
+                const useArrayOrDefault = (value, fallback) => Array.isArray(value) && value.length
+                    ? value
+                    : fallback;
+
+                return {
+                    toSanXuat: useArrayOrDefault(data.toSanXuat, DEFAULT_DROPDOWNS.toSanXuat),
+                    nhaSX: useArrayOrDefault(data.nhaSX, DEFAULT_DROPDOWNS.nhaSX),
+                    loaiHang: useArrayOrDefault(data.loaiHang, DEFAULT_DROPDOWNS.loaiHang),
+                    vungNguyenLieu: useArrayOrDefault(data.vungNguyenLieu, DEFAULT_DROPDOWNS.vungNguyenLieu)
+                };
+            }
+
+            /** Điền option vào select từ danh sách chuỗi hoặc danh sách value/label. */
+            function populateDropdown(selectId, items) {
+                const select = document.getElementById(selectId);
+                if (!select) return;
+
+                const previousValue = select.value;
+                select.replaceChildren();
+
+                items.forEach((item) => {
+                    const value = typeof item === 'object' && item !== null ? item.value : item;
+                    const label = typeof item === 'object' && item !== null ? item.label : item;
+                    if (value === undefined || value === null) return;
+
+                    const option = document.createElement('option');
+                    option.value = String(value);
+                    option.textContent = String(label ?? value);
+                    select.appendChild(option);
+                });
+
+                if (Array.from(select.options).some(option => option.value === previousValue)) {
+                    select.value = previousValue;
+                }
+            }
+
+            /** Điền đồng thời bốn dropdown nghiệp vụ. */
+            function applyDropdownSettings(settings) {
+                const normalized = normalizeDropdownSettings(settings);
+                currentDropdownSettings = normalized;
+                populateDropdown('toSanXuat', normalized.toSanXuat);
+                populateDropdown('nhaSX', normalized.nhaSX);
+                populateDropdown('loaiHang', normalized.loaiHang);
+                populateDropdown('vungNguyenLieu', normalized.vungNguyenLieu);
+            }
+
+            /** Yêu cầu mật khẩu rồi mở khu vực quản lý danh mục ngay trên trang. */
+            function openDropdownAdmin() {
+                const password = prompt('Nhập mật khẩu để quản lý danh mục:');
+                if (password === null) return;
+                if (password !== PRODUCT_ACTION_PASSWORD) {
+                    alert('Mật khẩu sai!');
+                    return;
+                }
+
+                renderDropdownAdmin();
+                document.getElementById('dropdownAdminModal').style.display = 'flex';
+            }
+
+            /** Đóng khu vực quản lý danh mục. */
+            function closeDropdownAdmin() {
+                document.getElementById('dropdownAdminModal').style.display = 'none';
+            }
+
+            /** Dựng các nhóm danh mục và biểu mẫu thêm item tương ứng. */
+            function renderDropdownAdmin() {
+                const container = document.getElementById('dropdownAdminGroups');
+                container.replaceChildren();
+
+                DROPDOWN_GROUPS.forEach((group) => {
+                    const section = document.createElement('section');
+                    section.className = 'border rounded-xl overflow-hidden bg-white';
+
+                    const heading = document.createElement('h4');
+                    heading.className = 'px-4 py-3 bg-gray-100 font-bold';
+                    heading.textContent = group.title;
+                    section.appendChild(heading);
+
+                    const list = document.createElement('div');
+                    list.className = 'divide-y max-h-56 overflow-auto';
+                    currentDropdownSettings[group.key].forEach((item, index) => {
+                        const row = document.createElement('div');
+                        row.className = 'flex items-center justify-between gap-3 px-4 py-2';
+
+                        const text = document.createElement('span');
+                        text.className = 'min-w-0 break-words';
+                        if (typeof item === 'object' && item !== null) {
+                            const itemValue = String(item.value || '').trim();
+                            const itemLabel = String(item.label || itemValue).trim();
+                            text.textContent = !itemValue || itemLabel.toLowerCase().startsWith(itemValue.toLowerCase())
+                                ? itemLabel
+                                : `${itemValue} - ${itemLabel}`;
+                        } else {
+                            text.textContent = String(item);
+                        }
+
+                        const removeButton = document.createElement('button');
+                        removeButton.type = 'button';
+                        removeButton.title = 'Xóa item';
+                        removeButton.className = 'shrink-0 w-9 h-9 text-red-600 hover:bg-red-50 rounded-lg';
+                        removeButton.innerHTML = '<i class="fas fa-trash"></i>';
+                        removeButton.onclick = () => removeDropdownItem(group.key, index);
+
+                        row.append(text, removeButton);
+                        list.appendChild(row);
+                    });
+                    section.appendChild(list);
+
+                    const form = document.createElement('div');
+                    form.className = 'flex gap-2 p-3 border-t bg-gray-50';
+                    form.innerHTML = group.structured
+                        ? `<input data-field="value" class="w-1/3 min-w-0 px-3 py-2 border rounded-lg" placeholder="${group.valuePlaceholder}">
+                           <input data-field="label" class="flex-1 min-w-0 px-3 py-2 border rounded-lg" placeholder="${group.labelPlaceholder}">`
+                        : `<input data-field="value" class="flex-1 min-w-0 px-3 py-2 border rounded-lg" placeholder="${group.valuePlaceholder}">`;
+
+                    const addButton = document.createElement('button');
+                    addButton.type = 'button';
+                    addButton.title = 'Thêm item';
+                    addButton.className = 'shrink-0 w-10 h-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg';
+                    addButton.innerHTML = '<i class="fas fa-plus"></i>';
+                    addButton.onclick = () => addDropdownItem(group, form);
+                    form.appendChild(addButton);
+                    section.appendChild(form);
+                    container.appendChild(section);
+                });
+            }
+
+            /** Lưu toàn bộ danh mục lên Firestore và áp dụng ngay vào biểu mẫu chính. */
+            async function saveDropdownSettings() {
+                if (!firebaseReady || !db) throw new Error('Database chưa sẵn sàng.');
+                await db.collection('settings').doc('dropdowns').set(currentDropdownSettings);
+                applyDropdownSettings(currentDropdownSettings);
+            }
+
+            /** Thêm item mới vào một nhóm danh mục. */
+            async function addDropdownItem(group, form) {
+                const value = String(form.querySelector('[data-field="value"]')?.value || '').trim();
+                const label = String(form.querySelector('[data-field="label"]')?.value || '').trim();
+                if (!value || (group.structured && !label)) {
+                    alert('Vui lòng nhập đủ thông tin item.');
+                    return;
+                }
+
+                const items = currentDropdownSettings[group.key];
+                const isDuplicate = items.some((item) => String(typeof item === 'object' ? item.value : item).toLowerCase() === value.toLowerCase());
+                if (isDuplicate) {
+                    alert('Item này đã tồn tại.');
+                    return;
+                }
+
+                items.push(group.structured ? { value, label } : value);
+                try {
+                    await saveDropdownSettings();
+                    renderDropdownAdmin();
+                } catch (error) {
+                    items.pop();
+                    alert('Không thể lưu item: ' + error.message);
+                }
+            }
+
+            /** Xóa item khỏi một nhóm sau khi xác nhận. */
+            async function removeDropdownItem(groupKey, index) {
+                const items = currentDropdownSettings[groupKey];
+                if (items.length <= 1) {
+                    alert('Mỗi danh mục cần giữ lại ít nhất một item.');
+                    return;
+                }
+                if (!confirm('Bạn có chắc muốn xóa item này?')) return;
+
+                const removed = items.splice(index, 1)[0];
+                try {
+                    await saveDropdownSettings();
+                    renderDropdownAdmin();
+                } catch (error) {
+                    items.splice(index, 0, removed);
+                    alert('Không thể xóa item: ' + error.message);
+                }
+            }
+
+            /** Bảo đảm select có value cần đồng bộ từ mã lot, kể cả khi chưa có trong cấu hình. */
+            function ensureSelectHasValue(selectOrId, value, label = value) {
+                const select = typeof selectOrId === 'string'
+                    ? document.getElementById(selectOrId)
+                    : selectOrId;
+                if (!select || value === undefined || value === null) return;
+
+                const stringValue = String(value);
+                const exists = Array.from(select.options).some(option => option.value === stringValue);
+                if (!exists) {
+                    const option = document.createElement('option');
+                    option.value = stringValue;
+                    option.textContent = String(label ?? value);
+                    option.dataset.temporary = 'true';
+                    select.appendChild(option);
+                }
+            }
+
+            /** Tải settings/dropdowns, tự tạo document mặc định và luôn có dữ liệu dự phòng. */
+            async function loadDropdownSettings() {
+                applyDropdownSettings(DEFAULT_DROPDOWNS);
+                if (!firebaseReady || !db) return DEFAULT_DROPDOWNS;
+
+                try {
+                    const dropdownRef = db.collection('settings').doc('dropdowns');
+                    const snapshot = await dropdownRef.get();
+                    let settings = DEFAULT_DROPDOWNS;
+
+                    if (snapshot.exists) {
+                        settings = normalizeDropdownSettings(snapshot.data());
+                    } else {
+                        await dropdownRef.set(DEFAULT_DROPDOWNS);
+                    }
+
+                    applyDropdownSettings(settings);
+                    return settings;
+                } catch (error) {
+                    console.error('Không tải được cấu hình dropdown:', error);
+                    applyDropdownSettings(DEFAULT_DROPDOWNS);
+                    setFirebaseStatus(`⚠️ Không tải được dropdown, đang dùng dữ liệu mặc định: ${error.message}`, true);
+                    return DEFAULT_DROPDOWNS;
+                }
             }
 
             try {
@@ -873,7 +1126,7 @@
 
                     const cleanup = () => {
                         if (iframe && iframe.parentNode) {
-                            // Một số trình duyệt hoặc trình điều khiển không phát sự kiện afterprint.
+                            iframe.parentNode.removeChild(iframe);
                         }
                     };
 
@@ -1642,12 +1895,10 @@
             // ==================== ĐỒNG BỘ LOT THEO LOẠI + NHÀ SX + VÙNG ====================
             let isSyncingLotFields = false;
 
-            /** Chuẩn hóa mã loại hàng về D, R hoặc chuỗi rỗng. */
+            /** Chuẩn hóa mã loại hàng thành một chữ cái viết hoa. */
             function normalizeLoaiHangCode(value) {
                 const code = String(value || '').trim().toUpperCase();
-                if (code === 'R') return 'R';
-                if (code === 'D') return 'D';
-                return '';
+                return /^[A-Z]$/.test(code) ? code : '';
             }
 
             /** Chuẩn hóa văn bản để so sánh không phân biệt dấu và chữ hoa. */
@@ -1684,13 +1935,10 @@
                 return digits.padStart(3, '0').slice(-3);
             }
 
-            /** Trả về mã vùng hợp lệ dùng trong mã lot. */
+            /** Trả về mã vùng hai chữ cái hợp lệ dùng trong mã lot. */
             function getRegionCodeForLot(regionValue) {
                 const code = String(regionValue || 'MT').trim().toUpperCase();
-                if (code === 'MT' || code === 'MD' || code === 'TN') {
-                    return code;
-                }
-                return 'MT';
+                return /^[A-Z]{2}$/.test(code) ? code : 'MT';
             }
 
             /** Tạo phần mã ngày đóng gói theo định dạng DDMMY. */
@@ -1740,15 +1988,13 @@
                 if (!parsed) return;
 
                 isSyncingLotFields = true;
-                loaiHang.value = normalizeLoaiHangCode(parsed.loaiCode);
+                const loaiCode = normalizeLoaiHangCode(parsed.loaiCode) || parsed.loaiCode;
+                ensureSelectHasValue(loaiHang, loaiCode);
+                ensureSelectHasValue(nhaSX, parsed.nhaSXCode);
+                ensureSelectHasValue(regionSelect, parsed.regionCode);
+                loaiHang.value = loaiCode;
                 nhaSX.value = parsed.nhaSXCode;
-
-                const availableRegionValues = new Set(Array.from(regionSelect.options).map(option => option.value));
-                if (availableRegionValues.has(parsed.regionCode)) {
-                    regionSelect.value = parsed.regionCode;
-                } else if (parsed.regionCode === 'DN' && availableRegionValues.has('LK')) {
-                    regionSelect.value = 'DN';
-                }
+                regionSelect.value = parsed.regionCode;
                 isSyncingLotFields = false;
             }
 
@@ -1794,15 +2040,14 @@
                 updatePreview();
             }
 
-            /** Chỉ nhận chữ số cho mã nhà sản xuất rồi cập nhật mã lot. */
+            /** Chuẩn hóa mã nhà sản xuất được chọn rồi cập nhật mã lot. */
             function handleNhaSXInput() {
                 const nhaSX = document.getElementById('nhaSX');
                 if (!nhaSX) return;
 
-                const digitsOnly = String(nhaSX.value || '').replace(/\D/g, '').slice(0, 3);
-                if (nhaSX.value !== digitsOnly) {
-                    nhaSX.value = digitsOnly;
-                }
+                const normalizedCode = normalizeNhaSXCode(nhaSX.value);
+                ensureSelectHasValue(nhaSX, normalizedCode);
+                nhaSX.value = normalizedCode;
 
                 handleLotRuleChange();
             }
@@ -1953,11 +2198,12 @@
             }
 
             // ==================== KHỞI TẠO KHI TRANG MỞ ====================
-            window.onload = () => {
+            window.onload = async () => {
                 const today = getVietnamDateKey();
                 document.getElementById('ngaySX').value = today;
                 document.getElementById('ngayDG').value = getPackagingDateKey();
 
+                await loadDropdownSettings();
                 syncControlsFromLot();
                 updateLotByRules();
 
