@@ -1,1510 +1,1522 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>In Nhãn TP - Quản Lý Sầu Riêng</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+    <!DOCTYPE html>
+    <html lang="vi">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>In Nhãn TP - Quản Lý Sầu Riêng</title>
+        
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+        <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+        
+        <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 
-    <style>
-        body { font-family: Tahoma, Arial, sans-serif; font-weight: 700; }
-        .label-preview {
-            width: 90mm; height: 60mm; border: 3px solid #000; background: white;
-            box-shadow: 0 10px 20px -3px rgb(0 0 0 / 0.2);
-            font-size: 9.0pt; line-height: 1.15; padding: 4px 5px;
-            letter-spacing: -0.2px; margin: 0 auto;
-        }
-        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 2000; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 16px 0; }
-        .modal-content { background: white; border-radius: 12px; width: 90%; max-width: 620px; max-height: calc(100vh - 32px); overflow: hidden; }
-        .modal-content-wide { max-width: 1200px; max-height: calc(100vh - 32px); }
-        .product-modal-content { display: flex; flex-direction: column; height: calc(100vh - 32px); }
-        .product-table-wrap { flex: 1; min-height: 0; overflow: auto; padding-bottom: 14px; }
-        .report-card {
-            background: linear-gradient(135deg, #121f32, #111827);
-            color: white;
-            border-radius: 16px;
-            padding: 24px;
-        }
-    </style>
-</head>
-<body class="bg-gray-100">
-    <div class="max-w-7xl mx-auto p-6">
-        <h1 class="text-3xl font-bold text-center mb-2 text-gray-800">HỆ THỐNG IN NHÃN THÀNH PHẨM</h1>
-        <div id="firebaseStatus" class="text-center text-sm text-gray-600 mb-6">Đang kiểm tra kết nối Firebase...</div>
+        <style>
+            body { font-family: Tahoma, Arial, sans-serif; font-weight: 700; }
+            .label-preview {
+                width: 90mm; height: 60mm; border: 3px solid #000; background: white;
+                box-shadow: 0 10px 20px -3px rgb(0 0 0 / 0.2);
+                font-size: 9.0pt; line-height: 1.15; padding: 4px 5px;
+                letter-spacing: -0.2px; margin: 0 auto;
+            }
+            .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 2000; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 16px 0; }
+            .modal-content { background: white; border-radius: 12px; width: 90%; max-width: 620px; max-height: calc(100vh - 32px); overflow: hidden; }
+            .modal-content-wide { max-width: 1200px; max-height: calc(100vh - 32px); }
+            .product-modal-content { display: flex; flex-direction: column; height: calc(100vh - 32px); }
+            .product-table-wrap { flex: 1; min-height: 0; overflow: auto; padding-bottom: 14px; }
+            .report-card {
+                background: linear-gradient(135deg, #121f32, #111827);
+                color: white;
+                border-radius: 16px;
+                padding: 24px;
+            }
+        </style>
+    </head>
+    <body class="bg-gray-100">
+        <div class="max-w-7xl mx-auto p-6">
+            <h1 class="text-3xl font-bold text-center mb-2 text-gray-800">HỆ THỐNG IN NHÃN THÀNH PHẨM</h1>
+            <div id="firebaseStatus" class="text-center text-sm text-gray-600 mb-6">Đang kiểm tra kết nối Firebase...</div>
 
-        <!-- Tabs -->
-        <div class="flex border-b mb-8 bg-white rounded-t-2xl shadow">
-            <button onclick="switchTab(0)" id="tab0" 
-                    class="tab-button flex-1 py-4 text-lg font-semibold border-b-4 border-blue-600 text-blue-600">NHẬP THÔNG TIN</button>
-            <button onclick="switchTab(1)" id="tab1" 
-                    class="tab-button flex-1 py-4 text-lg font-semibold text-gray-500">BÁO CÁO SẢN LƯỢNG</button>
-        </div>
+            <!-- Tabs -->
+            <div class="flex border-b mb-8 bg-white rounded-t-2xl shadow">
+                <button onclick="switchTab(0)" id="tab0" 
+                        class="tab-button flex-1 py-4 text-lg font-semibold border-b-4 border-blue-600 text-blue-600">NHẬP THÔNG TIN</button>
+                <button onclick="switchTab(1)" id="tab1" 
+                        class="tab-button flex-1 py-4 text-lg font-semibold text-gray-500">BÁO CÁO SẢN LƯỢNG</button>
+            </div>
 
-        <!-- Tab 1: Nhập Thông Tin -->
-        <div id="content0">
-            <div class="grid grid-cols-12 gap-6">
-                <div class="col-span-12 lg:col-span-7 bg-white rounded-2xl shadow p-8">
-                    <h2 class="text-2xl font-semibold mb-6">Nhập Thông Tin</h2>
+            <!-- Tab 1: Nhập Thông Tin -->
+            <div id="content0">
+                <div class="grid grid-cols-12 gap-6">
+                    <div class="col-span-12 lg:col-span-7 bg-white rounded-2xl shadow p-8">
+                        <h2 class="text-2xl font-semibold mb-6">Nhập Thông Tin</h2>
 
-                    <div class="grid grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-sm font-medium mb-1">Mã BTP (Lot)</label>
-                            <div class="flex gap-2">
-                                <input id="maBTP" type="text" class="flex-[2.5] px-4 py-3 border rounded-xl font-mono text-base" placeholder="D009MT15066-02-0K" oninput="handleLotInput()">
-                                <button onclick="openLotModal()" class="flex-1 px-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium flex items-center justify-center gap-2 text-sm">
-                                    <i class="fas fa-history"></i> <span class="hidden sm:inline">Chọn Lot</span>
-                                </button>
-                            </div>
-
-                            <div class="grid grid-cols-3 gap-4 mt-4">
-                                <div>
-                                    <label class="block text-sm font-medium mb-1">Quy Cách</label>
-                                    <input id="quyCach" type="text" value="20kg" class="w-full px-4 py-3 border rounded-xl" oninput="updatePreview()">
+                        <div class="grid grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Mã BTP (Lot)</label>
+                                <div class="flex gap-2">
+                                    <input id="maBTP" type="text" class="flex-[2.5] px-4 py-3 border rounded-xl font-mono text-base" placeholder="D009MT15066-02-0K" oninput="handleLotInput()">
+                                    <button onclick="openLotModal()" class="flex-1 px-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium flex items-center justify-center gap-2 text-sm">
+                                        <i class="fas fa-history"></i> <span class="hidden sm:inline">Chọn Lot</span>
+                                    </button>
                                 </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-1">Nhà SX</label>
-                                    <input id="nhaSX" type="text" value="009" maxlength="3" inputmode="numeric" pattern="[0-9]*" class="w-full px-4 py-3 border rounded-xl font-mono" oninput="handleNhaSXInput()">
+
+                                <div class="grid grid-cols-3 gap-4 mt-4">
+                                    <div>
+                                        <label class="block text-sm font-medium mb-1">Quy Cách</label>
+                                        <input id="quyCach" type="text" value="20kg" class="w-full px-4 py-3 border rounded-xl" oninput="updatePreview()">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium mb-1">Nhà SX</label>
+                                        <input id="nhaSX" type="text" value="009" maxlength="3" inputmode="numeric" pattern="[0-9]*" class="w-full px-4 py-3 border rounded-xl font-mono" oninput="handleNhaSXInput()">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium mb-1">Loại Hàng</label>
+                                        <select id="loaiHang" class="w-full px-4 py-3 border rounded-xl" onchange="handleLotRuleChange()">
+                                            <option value="">Không loại/Khác</option>
+                                            <option value="D">Dona (D)</option>
+                                            <option value="R">Ri (R)</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-1">Loại Hàng</label>
-                                    <select id="loaiHang" class="w-full px-4 py-3 border rounded-xl" onchange="handleLotRuleChange()">
-                                        <option value="">Không loại/Khác</option>
-                                        <option value="D">Dona (D)</option>
-                                        <option value="R">Ri (R)</option>
+
+                                <div class="mt-6">
+                                    <label class="block text-sm font-medium mb-1">VÙNG NGUYÊN LIỆU</label>
+                                    <select id="vungNguyenLieu" class="w-full px-4 py-3 border rounded-xl" onchange="handleRegionChange()">
+                                        <option value="MT">MT - Miền Tây</option>
+                                        <option value="MD">MD - Miền Đông</option>
+                                        <option value="TN">TN - Tây Nguyên</option>
                                     </select>
+                                    
                                 </div>
                             </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium mb-1">SKU</label>
+                                <input id="sku" type="text" class="w-full px-4 py-3 border rounded-xl font-mono text-base" placeholder="TP101020203.01.001" oninput="updatePreview()">
 
-                            <div class="mt-6">
-                                <label class="block text-sm font-medium mb-1">VÙNG NGUYÊN LIỆU</label>
-                                <select id="vungNguyenLieu" class="w-full px-4 py-3 border rounded-xl" onchange="handleRegionChange()">
-                                    <option value="MT">MT - Miền Tây</option>
-                                    <option value="MD">MD - Miền Đông</option>
-                                    <option value="TN">TN - Tây Nguyên</option>
+                                <label class="block text-sm font-medium mb-1 mt-4">Tên Thành Phẩm</label>
+                                <div class="flex items-center gap-2">
+                                    <input id="tenTP" type="text" class="flex-1 min-w-0 px-4 py-3 border rounded-xl" placeholder="TP CẤP ĐÔNG SẦU RIÊNG..." oninput="updatePreview()">
+                                    <button onclick="openProductModal()" class="shrink-0 px-3 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold whitespace-nowrap">
+                                        <i class="fas fa-boxes"></i> DS TP
+                                    </button>
+                                </div>
+
+                                <label class="block text-sm font-medium mb-1 mt-4">Tổ/Nhóm</label>
+                                <select id="toSanXuat" class="w-full px-4 py-3 border rounded-xl" onchange="updatePreview()">
+                                    <option value="Tèo">Tèo</option>
+                                    <option value="Nguyên">Nguyên</option>
+                                    <option value="Ly">Ly</option>
+                                    <option value="Tuấn">Tuấn</option>
+                                    <option value="Lyka">Lyka</option>
                                 </select>
-                                
                             </div>
                         </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium mb-1">SKU</label>
-                            <input id="sku" type="text" class="w-full px-4 py-3 border rounded-xl font-mono text-base" placeholder="TP101020203.01.001" oninput="updatePreview()">
 
-                            <label class="block text-sm font-medium mb-1 mt-4">Tên Thành Phẩm</label>
-                            <div class="flex items-center gap-2">
-                                <input id="tenTP" type="text" class="flex-1 min-w-0 px-4 py-3 border rounded-xl" placeholder="TP CẤP ĐÔNG SẦU RIÊNG..." oninput="updatePreview()">
-                                <button onclick="openProductModal()" class="shrink-0 px-3 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold whitespace-nowrap">
-                                    <i class="fas fa-boxes"></i> DS TP
+                        <div class="grid grid-cols-4 gap-4 mt-6">
+                            <div><label class="block text-sm font-medium mb-1">STT in đầu</label><input id="sttDau" type="number" value="0" class="w-full px-4 py-3 border rounded-xl" oninput="updateSttCuoi()"></div>
+                            <div><label class="block text-sm font-medium mb-1">Số lượng tem</label><input id="soLuongTem" type="number" value="1" min="1" class="w-full px-4 py-3 border rounded-xl font-semibold" oninput="updateSttCuoi()"></div>
+                            <div><label class="block text-sm font-medium mb-1">STT in cuối</label><input id="sttCuoi" type="number" value="0" class="w-full px-4 py-3 border rounded-xl bg-gray-50" readonly></div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Ngày SX</label>
+                                <input id="ngaySX" type="date" class="w-full px-4 py-3 border rounded-xl" onchange="updatePreview()">
+                            </div>
+                        </div>
+
+                        <div class="mt-6">
+                            <label class="block text-sm font-medium mb-1">Ngày ĐG </label>
+                            <input id="ngayDG" type="date" class="w-full px-4 py-3 border rounded-xl" oninput="handleNgayDongGoiInput()" onchange="handleNgayDongGoiInput()">
+                        </div>
+                    </div>
+
+                    <!-- Preview -->
+                    <div class="col-span-12 lg:col-span-5 space-y-6">
+                        <div class="bg-white rounded-2xl shadow p-6">
+                            <h2 class="text-xl font-semibold mb-4">Xem Trước Nhãn (90mm × 60mm)</h2>
+                            <div class="flex justify-center bg-gray-50 p-6 rounded-xl">
+                                <div id="previewLabel" class="label-preview"></div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="flex gap-4">
+                                <button onclick="openProductModal()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-xl font-medium">
+                                    <i class="fas fa-search"></i> Mở danh sách Thành Phẩm
+                                </button>
+                                <button onclick="resetSTT()" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-medium">
+                                    <i class="fas fa-undo"></i> Reset STT
                                 </button>
                             </div>
 
-                            <label class="block text-sm font-medium mb-1 mt-4">Tổ/Nhóm</label>
-                            <select id="toSanXuat" class="w-full px-4 py-3 border rounded-xl" onchange="updatePreview()">
-                                <option value="Tèo">Tèo</option>
-                                <option value="Nguyên">Nguyên</option>
-                                <option value="Ly">Ly</option>
-                                <option value="Tuấn">Tuấn</option>
-                            </select>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <button onclick="printLabels(false)" 
+                                        class="bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
+                                    <i class="fas fa-print"></i> IN NHÃN MỚI
+                                </button>
+                                <button onclick="printLabels(true)" 
+                                        class="bg-orange-600 hover:bg-orange-700 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
+                                    <i class="fas fa-redo"></i> IN LẠI 
+                                </button>
+                                <button onclick="downloadPdfLabels()"
+                                        class="bg-emerald-700 hover:bg-emerald-800 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
+                                    <i class="fas fa-file-pdf"></i> TẢI PDF
+                                </button>
+                            </div>
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    <div class="grid grid-cols-4 gap-4 mt-6">
-                        <div><label class="block text-sm font-medium mb-1">STT in đầu</label><input id="sttDau" type="number" value="0" class="w-full px-4 py-3 border rounded-xl" oninput="updateSttCuoi()"></div>
-                        <div><label class="block text-sm font-medium mb-1">Số lượng tem</label><input id="soLuongTem" type="number" value="1" min="1" class="w-full px-4 py-3 border rounded-xl font-semibold" oninput="updateSttCuoi()"></div>
-                        <div><label class="block text-sm font-medium mb-1">STT in cuối</label><input id="sttCuoi" type="number" value="0" class="w-full px-4 py-3 border rounded-xl bg-gray-50" readonly></div>
+            <!-- Tab 2: Báo Cáo -->
+            <div id="content1" class="hidden">
+                <div class="report-card mb-8">
+                    <div class="flex justify-between items-start mb-6">
                         <div>
-                            <label class="block text-sm font-medium mb-1">Ngày SX</label>
-                            <input id="ngaySX" type="date" class="w-full px-4 py-3 border rounded-xl" onchange="updatePreview()">
+                            <div class="text-sm opacity-75">BÁO CÁO SẢN LƯỢNG IN</div>
+                            <div id="totalTem" class="text-6xl font-bold mt-1">0</div>
+                            <div class="text-sm opacity-75">TEM ĐẠT</div>
+                        </div>
+                        <div class="text-right">
+                            <div id="temHong" class="text-4xl font-bold text-red-400">0</div>
+                            <div class="text-sm opacity-75">TEM HỒNG</div>
                         </div>
                     </div>
-
-                    <div class="mt-6">
-                        <label class="block text-sm font-medium mb-1">Ngày ĐG </label>
-                        <input id="ngayDG" type="date" class="w-full px-4 py-3 border rounded-xl" oninput="handleNgayDongGoiInput()" onchange="handleNgayDongGoiInput()">
+                    <div class="grid grid-cols-2 gap-8">
+                        <div>
+                            <div id="lastSTT" class="text-5xl font-bold text-emerald-400">0</div>
+                            <div class="text-sm opacity-75">STT CUỐI</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm opacity-75">CẬP NHẬT LẦN CUỐI</div>
+                            <div id="lastUpdate" class="font-mono text-lg">Chưa có dữ liệu</div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Preview -->
-                <div class="col-span-12 lg:col-span-5 space-y-6">
-                    <div class="bg-white rounded-2xl shadow p-6">
-                        <h2 class="text-xl font-semibold mb-4">Xem Trước Nhãn (90mm × 60mm)</h2>
-                        <div class="flex justify-center bg-gray-50 p-6 rounded-xl">
-                            <div id="previewLabel" class="label-preview"></div>
+                <div class="bg-white rounded-2xl shadow p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold">Lịch sử in nhãn</h3>
+                        <div class="flex gap-3">
+                            <button onclick="toggleSelectAll()" id="selectAllBtn"
+                                    class="bg-gray-600 hover:bg-gray-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 text-sm">
+                                <i class="fas fa-check-square"></i> Chọn tất cả
+                            </button>
+                            <button onclick="reprintFromHistory()" 
+                                    class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-xl flex items-center gap-2">
+                                <i class="fas fa-redo"></i> In lại tem đã chọn
+                            </button>
+                            <button onclick="deleteSelectedHistory()" 
+                                    class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl flex items-center gap-2">
+                                <i class="fas fa-trash"></i> Xóa đã chọn
+                            </button>
+                            <button onclick="exportReportExcel()" 
+                                    class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl flex items-center gap-2">
+                                <i class="fas fa-file-excel"></i> Tạo Excel Báo Cáo
+                            </button>
                         </div>
                     </div>
-
-                    <div class="space-y-4">
-                        <div class="flex gap-4">
-                            <button onclick="openProductModal()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-xl font-medium">
-                                <i class="fas fa-search"></i> Mở danh sách Thành Phẩm
-                            </button>
-                            <button onclick="resetSTT()" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-medium">
-                                <i class="fas fa-undo"></i> Reset STT
-                            </button>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <button onclick="printLabels(false)" 
-                                    class="bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
-                                <i class="fas fa-print"></i> IN NHÃN MỚI
-                            </button>
-                            <button onclick="printLabels(true)" 
-                                    class="bg-orange-600 hover:bg-orange-700 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
-                                <i class="fas fa-redo"></i> IN LẠI 
-                            </button>
-                            <button onclick="downloadPdfLabels()"
-                                    class="bg-emerald-700 hover:bg-emerald-800 text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3">
-                                <i class="fas fa-file-pdf"></i> TẢI PDF
-                            </button>
-                        </div>
+                    <div class="max-h-[500px] overflow-auto">
+                        <table id="historyTable" class="w-full text-sm"></table>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Tab 2: Báo Cáo -->
-        <div id="content1" class="hidden">
-            <div class="report-card mb-8">
-                <div class="flex justify-between items-start mb-6">
-                    <div>
-                        <div class="text-sm opacity-75">BÁO CÁO SẢN LƯỢNG IN</div>
-                        <div id="totalTem" class="text-6xl font-bold mt-1">0</div>
-                        <div class="text-sm opacity-75">TEM ĐẠT</div>
-                    </div>
-                    <div class="text-right">
-                        <div id="temHong" class="text-4xl font-bold text-red-400">0</div>
-                        <div class="text-sm opacity-75">TEM HỒNG</div>
-                    </div>
+        <!-- Modal Lịch sử -->
+        <div id="lotModal" class="modal">
+            <div class="modal-content">
+                <div class="p-6 border-b flex justify-between items-center bg-gray-50">
+                    <h3 class="text-xl font-bold">📋 Chọn Mã BTP từ Lịch sử Nhập</h3>
+                    <span onclick="closeLotModal()" class="text-3xl cursor-pointer hover:text-red-600">&times;</span>
                 </div>
-                <div class="grid grid-cols-2 gap-8">
-                    <div>
-                        <div id="lastSTT" class="text-5xl font-bold text-emerald-400">0</div>
-                        <div class="text-sm opacity-75">STT CUỐI</div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-sm opacity-75">CẬP NHẬT LẦN CUỐI</div>
-                        <div id="lastUpdate" class="font-mono text-lg">Chưa có dữ liệu</div>
-                    </div>
-                </div>
-            </div>
+                <div class="p-4">
+                    <input id="searchLot" type="text" placeholder="Tìm theo mã lot..." 
+                        class="w-full px-4 py-3 border rounded-xl mb-3" onkeyup="filterLotList()">
 
-            <div class="bg-white rounded-2xl shadow p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-semibold">Lịch sử in nhãn</h3>
-                    <div class="flex gap-3">
-                        <button onclick="toggleSelectAll()" id="selectAllBtn"
-                                class="bg-gray-600 hover:bg-gray-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 text-sm">
-                            <i class="fas fa-check-square"></i> Chọn tất cả
-                        </button>
-                        <button onclick="reprintFromHistory()" 
-                                class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-xl flex items-center gap-2">
-                            <i class="fas fa-redo"></i> In lại tem đã chọn
-                        </button>
-                        <button onclick="deleteSelectedHistory()" 
-                                class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl flex items-center gap-2">
-                            <i class="fas fa-trash"></i> Xóa đã chọn
-                        </button>
-                        <button onclick="exportReportExcel()" 
-                                class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl flex items-center gap-2">
-                            <i class="fas fa-file-excel"></i> Tạo Excel Báo Cáo
+                    <div class="flex gap-2 mb-4">
+                        <input id="searchDate" type="date" 
+                            class="flex-1 px-4 py-3 border rounded-xl" 
+                            onchange="filterLotList()">
+                        <button onclick="clearDateFilter()" 
+                                class="px-6 bg-gray-200 hover:bg-gray-300 rounded-xl text-sm font-medium whitespace-nowrap">
+                            Xóa ngày
                         </button>
                     </div>
-                </div>
-                <div class="max-h-[500px] overflow-auto">
-                    <table id="historyTable" class="w-full text-sm"></table>
+
+                    <div id="lotList" class="max-h-[500px] overflow-auto text-sm"></div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Modal Lịch sử -->
-    <div id="lotModal" class="modal">
-        <div class="modal-content">
-            <div class="p-6 border-b flex justify-between items-center bg-gray-50">
-                <h3 class="text-xl font-bold">📋 Chọn Mã BTP từ Lịch sử Nhập</h3>
-                <span onclick="closeLotModal()" class="text-3xl cursor-pointer hover:text-red-600">&times;</span>
-            </div>
-            <div class="p-4">
-                <input id="searchLot" type="text" placeholder="Tìm theo mã lot..." 
-                       class="w-full px-4 py-3 border rounded-xl mb-3" onkeyup="filterLotList()">
-
-                <div class="flex gap-2 mb-4">
-                    <input id="searchDate" type="date" 
-                           class="flex-1 px-4 py-3 border rounded-xl" 
-                           onchange="filterLotList()">
-                    <button onclick="clearDateFilter()" 
-                            class="px-6 bg-gray-200 hover:bg-gray-300 rounded-xl text-sm font-medium whitespace-nowrap">
-                        Xóa ngày
-                    </button>
-                </div>
-
-                <div id="lotList" class="max-h-[500px] overflow-auto text-sm"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Danh sách Thành Phẩm -->
-    <div id="productModal" class="modal">
-        <div class="modal-content modal-content-wide product-modal-content">
-            <div class="p-6 border-b flex flex-wrap justify-between items-center gap-3 bg-gray-50">
-                <h3 class="text-xl font-bold">📦 Danh sách Thành Phẩm</h3>
-                <div class="flex gap-2">
-                    <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 text-sm">
-                        <i class="fas fa-upload"></i> Import Excel
-                        <input type="file" id="excelFile" accept=".xlsx,.xls" class="hidden" onchange="importExcel(this)">
-                    </label>
-                    <button onclick="closeProductModal()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-xl text-sm font-medium">
-                        Đóng
-                    </button>
-                </div>
-            </div>
-
-            <div class="p-4 border-b bg-emerald-50/40">
-                <div class="grid grid-cols-12 gap-2">
-                    <input id="addStt" type="number" min="1" placeholder="STT" class="col-span-2 px-3 py-2 border rounded-xl">
-                    <input id="addSku" type="text" placeholder="Mã SKU" class="col-span-3 px-3 py-2 border rounded-xl font-mono">
-                    <input id="addTenTP" type="text" placeholder="Tên TP" class="col-span-3 px-3 py-2 border rounded-xl">
-                    <select id="addLoai" class="col-span-2 px-3 py-2 border rounded-xl">
-                        <option value="">Loại (tự nhận)</option>
-                        <option value="Đô">Đô</option>
-                        <option value="Ri">Ri</option>
-                    </select>
-                    <button onclick="addThanhPhamManual()" class="col-span-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2">
-                        <i class="fas fa-plus"></i> Thêm
-                    </button>
-                </div>
-            </div>
-
-            <div class="p-4 border-b">
-                <input id="searchInput" type="text" placeholder="Tìm mã SP hoặc tên..." class="w-full px-4 py-3 border rounded-xl" onkeyup="filterGrid()">
-            </div>
-
-            <div class="product-table-wrap">
-                <table id="dataGrid" class="w-full text-sm">
-                    <thead class="bg-gray-50 sticky top-0">
-                        <tr>
-                            <th class="px-4 py-3 text-left">STT</th>
-                            <th class="px-4 py-3 text-left">Mã SP</th>
-                            <th class="px-4 py-3 text-left">Tên TP</th>
-                            <th class="px-4 py-3 text-center">Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody id="gridBody"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    
-    <script>
-        // ==================== PHẦN CHỌN LOT TỪ LỊCH SỬ CŨ ====================
-        const oldConfig = {
-            apiKey: "AIzaSyCtmyLlGJuCn35kYR6819XbaP6665KKgd8",
-            authDomain: "quanlysaurieng.firebaseapp.com",
-            databaseURL: "https://quanlysaurieng-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "quanlysaurieng"
-        };
-        if (!firebase.apps.some(app => app.name === 'oldApp')) {
-            firebase.initializeApp(oldConfig, "oldApp");
-        }
-        const historyRef = firebase.app("oldApp").database().ref('qrHistory');
-        let historyLots = [];
-
-        /** Tải và sắp xếp danh sách lot từ hệ thống lịch sử cũ. */
-        async function loadHistoryLots() {
-            try {
-                const snapshot = await historyRef.once('value');
-                const data = snapshot.val();
-                historyLots = data ? Object.values(data) : [];
-                historyLots.sort((a, b) => (b.id || 0) - (a.id || 0));
-            } catch(e) { console.error(e); }
-        }
-
-        /** Tải dữ liệu rồi mở cửa sổ chọn lot. */
-        function openLotModal() {
-            loadHistoryLots().then(() => {
-                renderLotList();
-                document.getElementById('lotModal').style.display = 'flex';
-                document.getElementById('searchLot').value = '';
-                document.getElementById('searchDate').value = '';
-            });
-        }
-
-        /** Đóng cửa sổ chọn lot. */
-        function closeLotModal() {
-            document.getElementById('lotModal').style.display = 'none';
-        }
-
-        /** Mở danh sách thành phẩm và đưa con trỏ vào ô tìm kiếm. */
-        function openProductModal() {
-            const modal = document.getElementById('productModal');
-            if (!modal) return;
-            modal.style.display = 'flex';
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput) {
-                searchInput.value = '';
-                filterGrid();
-                searchInput.focus();
-            }
-        }
-
-        /** Đóng cửa sổ danh sách thành phẩm. */
-        function closeProductModal() {
-            const modal = document.getElementById('productModal');
-            if (!modal) return;
-            modal.style.display = 'none';
-        }
-
-        /** Hiển thị danh sách lot đã tải hoặc danh sách đã lọc. */
-        function renderLotList(filtered = historyLots) {
-            const html = filtered.map(item => `
-                <div onclick="selectLot('${item.ma_lo}')" class="px-4 py-3 hover:bg-indigo-50 border-b cursor-pointer">
-                    <div class="font-bold font-mono">${item.ma_lo}</div>
-                    <div class="text-gray-600 text-xs">
-                        ${item.ngay_display || ''} 
-                        ${item.bienso ? `| ${item.bienso}` : ''} 
-                        ${item.tongkl ? `| ${item.tongkl}kg` : ''}
+        <!-- Modal Danh sách Thành Phẩm -->
+        <div id="productModal" class="modal">
+            <div class="modal-content modal-content-wide product-modal-content">
+                <div class="p-6 border-b flex flex-wrap justify-between items-center gap-3 bg-gray-50">
+                    <h3 class="text-xl font-bold">📦 Danh sách Thành Phẩm</h3>
+                    <div class="flex gap-2">
+                        <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 text-sm">
+                            <i class="fas fa-upload"></i> Import Excel
+                            <input type="file" id="excelFile" accept=".xlsx,.xls" class="hidden" onchange="importExcel(this)">
+                        </label>
+                        <button onclick="closeProductModal()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-xl text-sm font-medium">
+                            Đóng
+                        </button>
                     </div>
                 </div>
-            `).join('');
-            document.getElementById('lotList').innerHTML = html || '<p class="p-8 text-center text-gray-400">Không tìm thấy kết quả</p>';
-        }
 
-        /** Lọc lot theo từ khóa và ngày nhập. */
-        function filterLotList() {
-            const textTerm = document.getElementById('searchLot').value.toLowerCase().trim();
-            const dateValue = document.getElementById('searchDate').value;
+                <div class="p-4 border-b bg-emerald-50/40">
+                    <div class="grid grid-cols-12 gap-2">
+                        <input id="addStt" type="number" min="1" placeholder="STT" class="col-span-2 px-3 py-2 border rounded-xl">
+                        <input id="addSku" type="text" placeholder="Mã SKU" class="col-span-3 px-3 py-2 border rounded-xl font-mono">
+                        <input id="addTenTP" type="text" placeholder="Tên TP" class="col-span-3 px-3 py-2 border rounded-xl">
+                        <select id="addLoai" class="col-span-2 px-3 py-2 border rounded-xl">
+                            <option value="">Loại (tự nhận)</option>
+                            <option value="Đô">Đô</option>
+                            <option value="Ri">Ri</option>
+                        </select>
+                        <button onclick="addThanhPhamManual()" class="col-span-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+                            <i class="fas fa-plus"></i> Thêm
+                        </button>
+                    </div>
+                </div>
 
-            const filtered = historyLots.filter(item => {
-                const matchText = !textTerm || item.ma_lo.toLowerCase().includes(textTerm);
-                let matchDate = true;
-                if (dateValue && item.ngay_display) {
-                    const [day, month, year] = item.ngay_display.split('/');
-                    const itemDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                    matchDate = itemDate === dateValue;
-                }
-                return matchText && matchDate;
-            });
-            renderLotList(filtered);
-        }
+                <div class="p-4 border-b">
+                    <input id="searchInput" type="text" placeholder="Tìm mã SP hoặc tên..." class="w-full px-4 py-3 border rounded-xl" onkeyup="filterGrid()">
+                </div>
 
-        /** Xóa điều kiện ngày và lọc lại danh sách lot. */
-        function clearDateFilter() {
-            document.getElementById('searchDate').value = '';
-            filterLotList();
-        }
-
-        /** Áp dụng lot được chọn vào biểu mẫu chính. */
-        window.selectLot = function(maLo) {
-            document.getElementById('maBTP').value = maLo;
-            syncControlsFromLot();
-            closeLotModal();
-            updatePreview();
-        };
-
-        // ==================== PHẦN CHÍNH: FIREBASE VÀ DỮ LIỆU ====================
-        const firebaseConfig = {
-            apiKey: "AIzaSyDhdMp0KSXEjbyzi69FJTdYoi94PxhCJYs",
-            authDomain: "quanlyinsaurieng.firebaseapp.com",
-            databaseURL: "https://quanlyinsaurieng-default-rtdb.firebaseio.com",
-            projectId: "quanlyinsaurieng",
-            storageBucket: "quanlyinsaurieng.firebasestorage.app",
-            messagingSenderId: "982338646873",
-            appId: "1:982338646873:web:9f0afa7e9d81b9bb29d248",
-            measurementId: "G-ZVG1XT3ZCR"
-        };
-
-        let db;
-        let firebaseReady = false;
-        let counterRef = null;
-
-        /** Cập nhật thông báo trạng thái kết nối Firebase trên giao diện. */
-        function setFirebaseStatus(message, isError = false) {
-            const el = document.getElementById('firebaseStatus');
-            if (!el) return;
-            el.textContent = message;
-            el.className = `text-center text-sm mb-6 ${isError ? 'text-red-600' : 'text-gray-600'}`;
-        }
-
-        try {
-            if (!firebase.apps.some(app => app.name === '[DEFAULT]')) {
-                firebase.initializeApp(firebaseConfig);
-            }
-            db = firebase.firestore();
-            counterRef = db.collection("settings").doc("stt_counter");
-            firebaseReady = true;
-            setFirebaseStatus("✅ Đã kết nối database");
-        } catch (error) {
-            firebaseReady = false;
-            setFirebaseStatus(`⚠️ Chưa kết nối database: ${error.message}`, true);
-        }
-
-        // Danh sách sản phẩm và lịch sử in
-        let products = [];
-        let selectedIndex = -1;
-        let printHistory = [];
-        let selectedHistoryIds = new Set();
-        let packagingDateEditedByUser = false;
-        const RESET_PASSWORD = "20695";
-        const PRODUCT_ACTION_PASSWORD = "200695";
-        let lastLoadedProductKey = '';
-        let productSttLoadTimer = null;
-        let isPrinting = false;
-
-        /** Xác thực mật khẩu trước khi thay đổi danh sách thành phẩm. */
-        function verifyProductActionPassword() {
-            const password = prompt('Nhập mật khẩu để thao tác danh sách thành phẩm:');
-            if (password === null) return false;
-            if (password !== PRODUCT_ACTION_PASSWORD) {
-                alert('Mật khẩu sai!');
-                return false;
-            }
-            return true;
-        }
-
-        /** Chuyển giá trị thành số nguyên dương hoặc dùng giá trị mặc định. */
-        function toPositiveInt(value, fallback = 1) {
-            const num = Number(value);
-            return Number.isFinite(num) && num > 0 ? Math.floor(num) : fallback;
-        }
-
-        /** Chuyển giá trị thành số nguyên không âm hoặc dùng giá trị mặc định. */
-        function toNonNegativeInt(value, fallback = 0) {
-            const num = Number(value);
-            return Number.isFinite(num) && num >= 0 ? Math.floor(num) : fallback;
-        }
-
-        /** Trả về ngày tại Việt Nam theo định dạng YYYY-MM-DD. */
-        function getVietnamDateKey(date = new Date()) {
-            const parts = new Intl.DateTimeFormat('en-CA', {
-                timeZone: 'Asia/Ho_Chi_Minh',
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-            }).formatToParts(date);
-            const values = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
-            return `${values.year}-${values.month}-${values.day}`;
-        }
-
-        /** Tách đầy đủ các thành phần ngày giờ theo múi giờ Việt Nam. */
-        function getVietnamDateTimeParts(date = new Date()) {
-            const parts = new Intl.DateTimeFormat('en-CA', {
-                timeZone: 'Asia/Ho_Chi_Minh',
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hourCycle: 'h23'
-            }).formatToParts(date);
-            const values = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
-            return {
-                year: Number(values.year),
-                month: Number(values.month),
-                day: Number(values.day),
-                hour: Number(values.hour),
-                minute: Number(values.minute),
-                second: Number(values.second)
+                <div class="product-table-wrap">
+                    <table id="dataGrid" class="w-full text-sm">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th class="px-4 py-3 text-left">STT</th>
+                                <th class="px-4 py-3 text-left">Mã SP</th>
+                                <th class="px-4 py-3 text-left">Tên TP</th>
+                                <th class="px-4 py-3 text-center">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gridBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+            // ==================== PHẦN CHỌN LOT TỪ LỊCH SỬ CŨ ====================
+            const oldConfig = {
+                apiKey: "AIzaSyCtmyLlGJuCn35kYR6819XbaP6665KKgd8",
+                authDomain: "quanlysaurieng.firebaseapp.com",
+                databaseURL: "https://quanlysaurieng-default-rtdb.asia-southeast1.firebasedatabase.app",
+                projectId: "quanlysaurieng"
             };
-        }
+            if (!firebase.apps.some(app => app.name === 'oldApp')) {
+                firebase.initializeApp(oldConfig, "oldApp");
+            }
+            const historyRef = firebase.app("oldApp").database().ref('qrHistory');
+            let historyLots = [];
 
-        /** Cộng số ngày vào chuỗi ngày YYYY-MM-DD mà không phụ thuộc múi giờ máy. */
-        function addDaysToDateKey(dateKey, days) {
-            const [year, month, day] = String(dateKey).split('-').map(Number);
-            const utcDate = new Date(Date.UTC(year, month - 1, day + days));
-            return utcDate.toISOString().slice(0, 10);
-        }
+            /** Tải và sắp xếp danh sách lot từ hệ thống lịch sử cũ. */
+            async function loadHistoryLots() {
+                try {
+                    const snapshot = await historyRef.once('value');
+                    const data = snapshot.val();
+                    historyLots = data ? Object.values(data) : [];
+                    historyLots.sort((a, b) => (b.id || 0) - (a.id || 0));
+                } catch(e) { console.error(e); }
+            }
 
-        /** Xác định ngày đóng gói hiện hành theo giờ Việt Nam. */
-        function getPackagingDateKey(date = new Date()) {
-            const vnParts = getVietnamDateTimeParts(date);
-            const todayKey = `${String(vnParts.year).padStart(4, '0')}-${String(vnParts.month).padStart(2, '0')}-${String(vnParts.day).padStart(2, '0')}`;
-            const secondsOfDay = (vnParts.hour * 3600) + (vnParts.minute * 60) + vnParts.second;
-            const cutoffSeconds = (23 * 3600) + (59 * 60) + 59;
-            return secondsOfDay > cutoffSeconds ? addDaysToDateKey(todayKey, 1) : todayKey;
-        }
+            /** Tải dữ liệu rồi mở cửa sổ chọn lot. */
+            function openLotModal() {
+                loadHistoryLots().then(() => {
+                    renderLotList();
+                    document.getElementById('lotModal').style.display = 'flex';
+                    document.getElementById('searchLot').value = '';
+                    document.getElementById('searchDate').value = '';
+                });
+            }
 
-        /** Đồng bộ ngày đóng gói tự động khi người dùng chưa sửa thủ công. */
-        function syncNgayDongGoi() {
-            const ngayDGInput = document.getElementById('ngayDG');
-            if (!ngayDGInput) return;
+            /** Đóng cửa sổ chọn lot. */
+            function closeLotModal() {
+                document.getElementById('lotModal').style.display = 'none';
+            }
 
-            const packagingDate = getPackagingDateKey();
-            if (!ngayDGInput.value || !packagingDateEditedByUser) {
-                if (ngayDGInput.value !== packagingDate) {
-                    ngayDGInput.value = packagingDate;
+            /** Mở danh sách thành phẩm và đưa con trỏ vào ô tìm kiếm. */
+            function openProductModal() {
+                const modal = document.getElementById('productModal');
+                if (!modal) return;
+                modal.style.display = 'flex';
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) {
+                    searchInput.value = '';
+                    filterGrid();
+                    searchInput.focus();
                 }
+            }
+
+            /** Đóng cửa sổ danh sách thành phẩm. */
+            function closeProductModal() {
+                const modal = document.getElementById('productModal');
+                if (!modal) return;
+                modal.style.display = 'none';
+            }
+
+            /** Hiển thị danh sách lot đã tải hoặc danh sách đã lọc. */
+            function renderLotList(filtered = historyLots) {
+                const html = filtered.map(item => `
+                    <div onclick="selectLot('${item.ma_lo}')" class="px-4 py-3 hover:bg-indigo-50 border-b cursor-pointer">
+                        <div class="font-bold font-mono">${item.ma_lo}</div>
+                        <div class="text-gray-600 text-xs">
+                            ${item.ngay_display || ''} 
+                            ${item.bienso ? `| ${item.bienso}` : ''} 
+                            ${item.tongkl ? `| ${item.tongkl}kg` : ''}
+                        </div>
+                    </div>
+                `).join('');
+                document.getElementById('lotList').innerHTML = html || '<p class="p-8 text-center text-gray-400">Không tìm thấy kết quả</p>';
+            }
+
+            /** Lọc lot theo từ khóa và ngày nhập. */
+            function filterLotList() {
+                const textTerm = document.getElementById('searchLot').value.toLowerCase().trim();
+                const dateValue = document.getElementById('searchDate').value;
+
+                const filtered = historyLots.filter(item => {
+                    const matchText = !textTerm || item.ma_lo.toLowerCase().includes(textTerm);
+                    let matchDate = true;
+                    if (dateValue && item.ngay_display) {
+                        const [day, month, year] = item.ngay_display.split('/');
+                        const itemDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                        matchDate = itemDate === dateValue;
+                    }
+                    return matchText && matchDate;
+                });
+                renderLotList(filtered);
+            }
+
+            /** Xóa điều kiện ngày và lọc lại danh sách lot. */
+            function clearDateFilter() {
+                document.getElementById('searchDate').value = '';
+                filterLotList();
+            }
+
+            /** Áp dụng lot được chọn vào biểu mẫu chính. */
+            window.selectLot = function(maLo) {
+                document.getElementById('maBTP').value = maLo;
+                syncControlsFromLot();
+                closeLotModal();
+                updatePreview();
+            };
+
+            // ==================== PHẦN CHÍNH: FIREBASE VÀ DỮ LIỆU ====================
+            const firebaseConfig = {
+                apiKey: "AIzaSyDhdMp0KSXEjbyzi69FJTdYoi94PxhCJYs",
+                authDomain: "quanlyinsaurieng.firebaseapp.com",
+                databaseURL: "https://quanlyinsaurieng-default-rtdb.firebaseio.com",
+                projectId: "quanlyinsaurieng",
+                storageBucket: "quanlyinsaurieng.firebasestorage.app",
+                messagingSenderId: "982338646873",
+                appId: "1:982338646873:web:9f0afa7e9d81b9bb29d248",
+                measurementId: "G-ZVG1XT3ZCR"
+            };
+
+            let db;
+            let firebaseReady = false;
+            let counterRef = null;
+
+            /** Cập nhật thông báo trạng thái kết nối Firebase trên giao diện. */
+            function setFirebaseStatus(message, isError = false) {
+                const el = document.getElementById('firebaseStatus');
+                if (!el) return;
+                el.textContent = message;
+                el.className = `text-center text-sm mb-6 ${isError ? 'text-red-600' : 'text-gray-600'}`;
+            }
+
+            try {
+                if (!firebase.apps.some(app => app.name === '[DEFAULT]')) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                db = firebase.firestore();
+                counterRef = db.collection("settings").doc("stt_counter");
+                firebaseReady = true;
+                setFirebaseStatus("✅ Đã kết nối database");
+            } catch (error) {
+                firebaseReady = false;
+                setFirebaseStatus(`⚠️ Chưa kết nối database: ${error.message}`, true);
+            }
+
+            // Danh sách sản phẩm và lịch sử in
+            let products = [];
+            let selectedIndex = -1;
+            let printHistory = [];
+            let selectedHistoryIds = new Set();
+            let packagingDateEditedByUser = false;
+            const RESET_PASSWORD = "20695";
+            const PRODUCT_ACTION_PASSWORD = "200695";
+            let lastLoadedProductKey = '';
+            let productSttLoadTimer = null;
+            let isPrinting = false;
+
+            /** Xác thực mật khẩu trước khi thay đổi danh sách thành phẩm. */
+            function verifyProductActionPassword() {
+                const password = prompt('Nhập mật khẩu để thao tác danh sách thành phẩm:');
+                if (password === null) return false;
+                if (password !== PRODUCT_ACTION_PASSWORD) {
+                    alert('Mật khẩu sai!');
+                    return false;
+                }
+                return true;
+            }
+
+            /** Chuyển giá trị thành số nguyên dương hoặc dùng giá trị mặc định. */
+            function toPositiveInt(value, fallback = 1) {
+                const num = Number(value);
+                return Number.isFinite(num) && num > 0 ? Math.floor(num) : fallback;
+            }
+
+            /** Chuyển giá trị thành số nguyên không âm hoặc dùng giá trị mặc định. */
+            function toNonNegativeInt(value, fallback = 0) {
+                const num = Number(value);
+                return Number.isFinite(num) && num >= 0 ? Math.floor(num) : fallback;
+            }
+
+            /** Trả về ngày tại Việt Nam theo định dạng YYYY-MM-DD. */
+            function getVietnamDateKey(date = new Date()) {
+                const parts = new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'Asia/Ho_Chi_Minh',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                }).formatToParts(date);
+                const values = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+                return `${values.year}-${values.month}-${values.day}`;
+            }
+
+            /** Tách đầy đủ các thành phần ngày giờ theo múi giờ Việt Nam. */
+            function getVietnamDateTimeParts(date = new Date()) {
+                const parts = new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'Asia/Ho_Chi_Minh',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hourCycle: 'h23'
+                }).formatToParts(date);
+                const values = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+                return {
+                    year: Number(values.year),
+                    month: Number(values.month),
+                    day: Number(values.day),
+                    hour: Number(values.hour),
+                    minute: Number(values.minute),
+                    second: Number(values.second)
+                };
+            }
+
+            /** Cộng số ngày vào chuỗi ngày YYYY-MM-DD mà không phụ thuộc múi giờ máy. */
+            function addDaysToDateKey(dateKey, days) {
+                const [year, month, day] = String(dateKey).split('-').map(Number);
+                const utcDate = new Date(Date.UTC(year, month - 1, day + days));
+                return utcDate.toISOString().slice(0, 10);
+            }
+
+            /** Xác định ngày đóng gói hiện hành theo giờ Việt Nam. */
+            function getPackagingDateKey(date = new Date()) {
+                const vnParts = getVietnamDateTimeParts(date);
+                const todayKey = `${String(vnParts.year).padStart(4, '0')}-${String(vnParts.month).padStart(2, '0')}-${String(vnParts.day).padStart(2, '0')}`;
+                const secondsOfDay = (vnParts.hour * 3600) + (vnParts.minute * 60) + vnParts.second;
+                const cutoffSeconds = (23 * 3600) + (59 * 60) + 59;
+                return secondsOfDay > cutoffSeconds ? addDaysToDateKey(todayKey, 1) : todayKey;
+            }
+
+            /** Đồng bộ ngày đóng gói tự động khi người dùng chưa sửa thủ công. */
+            function syncNgayDongGoi() {
+                const ngayDGInput = document.getElementById('ngayDG');
+                if (!ngayDGInput) return;
+
+                const packagingDate = getPackagingDateKey();
+                if (!ngayDGInput.value || !packagingDateEditedByUser) {
+                    if (ngayDGInput.value !== packagingDate) {
+                        ngayDGInput.value = packagingDate;
+                    }
+                    updateLotByRules();
+                    updatePreview();
+                }
+            }
+
+            /** Ghi nhận việc sửa ngày đóng gói và cập nhật mã lot, bản xem trước. */
+            function handleNgayDongGoiInput() {
+                packagingDateEditedByUser = true;
                 updateLotByRules();
                 updatePreview();
             }
-        }
 
-        /** Ghi nhận việc sửa ngày đóng gói và cập nhật mã lot, bản xem trước. */
-        function handleNgayDongGoiInput() {
-            packagingDateEditedByUser = true;
-            updateLotByRules();
-            updatePreview();
-        }
-
-        /** Kiểm tra ngày đóng gói định kỳ để tự chuyển ngày khi cần. */
-        function scheduleNgayDongGoiSync() {
-            syncNgayDongGoi();
-            window.setTimeout(scheduleNgayDongGoiSync, 1000);
-        }
-
-        /** Tạo khóa ổn định đại diện cho thành phẩm hiện tại. */
-        function getProductKey() {
-            const sku = (document.getElementById('sku').value || '').trim();
-            const tenTP = (document.getElementById('tenTP').value || '').trim();
-            const maBTP = (document.getElementById('maBTP').value || '').trim();
-            const raw = sku || `${tenTP || 'unknown'}_${maBTP || 'unknown'}`;
-            return `p_${raw.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
-        }
-
-        /** Tạo khóa bộ đếm STT riêng theo ngày và thành phẩm. */
-        function getDailyProductCounterKey() {
-            const productKey = getProductKey();
-            return `${getVietnamDateKey()}__${productKey}`;
-        }
-
-        /** Đảm bảo bộ đếm của thành phẩm hiện tại đã được tải. */
-        async function ensureCurrentProductCounterLoaded() {
-            const counterKey = getDailyProductCounterKey();
-            if (!counterKey || counterKey === lastLoadedProductKey) return;
-            await loadProductSTT(true);
-        }
-
-        /** Trì hoãn việc tải STT để tránh truy vấn liên tục khi người dùng nhập. */
-        function scheduleLoadProductSTT() {
-            if (isPrinting) return;
-            clearTimeout(productSttLoadTimer);
-            productSttLoadTimer = setTimeout(() => {
-                loadProductSTT();
-            }, 250);
-        }
-
-        /** Tải STT tiếp theo của thành phẩm trong ngày từ Firestore. */
-        async function loadProductSTT(force = false) {
-            if (isPrinting) return;
-            const productKey = getProductKey();
-            const counterKey = getDailyProductCounterKey();
-            if (!productKey || !counterKey || (!force && counterKey === lastLoadedProductKey)) return;
-
-            try {
-                const doc = await db.collection("productCounters").doc(counterKey).get();
-                const saved = doc.exists ? doc.data() : null;
-                const currentSttDau = toNonNegativeInt(document.getElementById('sttDau').value, 0);
-                const nextStart = toNonNegativeInt(saved ? saved.nextSTT : null, currentSttDau);
-                document.getElementById('sttDau').value = nextStart;
-                updateSttCuoi();
-                lastLoadedProductKey = counterKey;
-            } catch (e) {
-                console.error(e);
+            /** Kiểm tra ngày đóng gói định kỳ để tự chuyển ngày khi cần. */
+            function scheduleNgayDongGoiSync() {
+                syncNgayDongGoi();
+                window.setTimeout(scheduleNgayDongGoiSync, 1000);
             }
-        }
 
-        /** Lưu STT tiếp theo và thông tin lần in gần nhất vào Firestore. */
-        async function saveProductSTT(nextSTT, sttDau, sttCuoi) {
-            const productKey = getProductKey();
-            const counterKey = getDailyProductCounterKey();
-            if (!productKey || !counterKey) return;
+            /** Tạo khóa ổn định đại diện cho thành phẩm hiện tại. */
+            function getProductKey() {
+                const sku = (document.getElementById('sku').value || '').trim();
+                const tenTP = (document.getElementById('tenTP').value || '').trim();
+                const maBTP = (document.getElementById('maBTP').value || '').trim();
+                const raw = sku || `${tenTP || 'unknown'}_${maBTP || 'unknown'}`;
+                return `p_${raw.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+            }
 
-            try {
-                await db.collection("productCounters").doc(counterKey).set({
-                    counterKey,
-                    counterDate: getVietnamDateKey(),
-                    productKey,
+            /** Tạo khóa bộ đếm STT riêng theo ngày và thành phẩm. */
+            function getDailyProductCounterKey() {
+                const productKey = getProductKey();
+                return `${getVietnamDateKey()}__${productKey}`;
+            }
+
+            /** Đảm bảo bộ đếm của thành phẩm hiện tại đã được tải. */
+            async function ensureCurrentProductCounterLoaded() {
+                const counterKey = getDailyProductCounterKey();
+                if (!counterKey || counterKey === lastLoadedProductKey) return;
+                await loadProductSTT(true);
+            }
+
+            /** Trì hoãn việc tải STT để tránh truy vấn liên tục khi người dùng nhập. */
+            function scheduleLoadProductSTT() {
+                if (isPrinting) return;
+                clearTimeout(productSttLoadTimer);
+                productSttLoadTimer = setTimeout(() => {
+                    loadProductSTT();
+                }, 250);
+            }
+
+            /** Tải STT tiếp theo của thành phẩm trong ngày từ Firestore. */
+            async function loadProductSTT(force = false) {
+                if (isPrinting) return;
+                const productKey = getProductKey();
+                const counterKey = getDailyProductCounterKey();
+                if (!productKey || !counterKey || (!force && counterKey === lastLoadedProductKey)) return;
+
+                try {
+                    const doc = await db.collection("productCounters").doc(counterKey).get();
+                    const saved = doc.exists ? doc.data() : null;
+                    const currentSttDau = toNonNegativeInt(document.getElementById('sttDau').value, 0);
+                    const nextStart = toNonNegativeInt(saved ? saved.nextSTT : null, currentSttDau);
+                    document.getElementById('sttDau').value = nextStart;
+                    updateSttCuoi();
+                    lastLoadedProductKey = counterKey;
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+
+            /** Lưu STT tiếp theo và thông tin lần in gần nhất vào Firestore. */
+            async function saveProductSTT(nextSTT, sttDau, sttCuoi) {
+                const productKey = getProductKey();
+                const counterKey = getDailyProductCounterKey();
+                if (!productKey || !counterKey) return;
+
+                try {
+                    await db.collection("productCounters").doc(counterKey).set({
+                        counterKey,
+                        counterDate: getVietnamDateKey(),
+                        productKey,
+                        sku: document.getElementById('sku').value || '',
+                        tenTP: document.getElementById('tenTP').value || '',
+                        maBTP: document.getElementById('maBTP').value || '',
+                        nextSTT: nextSTT,
+                        lastSttDau: sttDau,
+                        lastSttCuoi: sttCuoi,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                    lastLoadedProductKey = counterKey;
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+
+            // ==================== TẢI DỮ LIỆU SẢN PHẨM TỪ FIREBASE ====================
+            /** Theo dõi thay đổi danh sách thành phẩm theo thời gian thực. */
+            function loadProductsFromFirebase() {
+                if (!firebaseReady || !db) {
+                    setFirebaseStatus("⚠️ Chưa kết nối database để tải dữ liệu", true);
+                    return;
+                }
+                db.collection("thanhpham").orderBy("stt").onSnapshot((snapshot) => {
+                    products = [];
+                    snapshot.forEach((doc) => {
+                        products.push({ id: doc.id, ...doc.data() });
+                    });
+                    populateGrid();
+                });
+            }
+
+            // ==================== TẢI LỊCH SỬ IN TEM ====================
+            /** Theo dõi lịch sử in và cập nhật các chỉ số báo cáo. */
+            function loadPrintHistory() {
+                if (!firebaseReady || !db) {
+                    setFirebaseStatus("⚠️ Chưa kết nối database để tải lịch sử", true);
+                    return;
+                }
+                db.collection("printHistory").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
+                    printHistory = [];
+                    let total = 0;
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        data.id = doc.id;
+                        printHistory.push(data);
+                        total += (data.soLuong || 0);
+                    });
+
+                    document.getElementById('totalTem').textContent = total.toLocaleString('vi-VN');
+                    document.getElementById('lastSTT').textContent = printHistory.length ? printHistory[0].sttCuoi : 0;
+                    document.getElementById('temHong').textContent = "0";
+                    document.getElementById('lastUpdate').textContent = printHistory.length ? 
+                        new Date(printHistory[0].timestamp?.toDate() || Date.now()).toLocaleString('vi-VN') : "Chưa có";
+
+                    renderHistoryTable();
+                });
+            }
+
+            // ==================== HIỂN THỊ BẢNG LỊCH SỬ ====================
+            /** Dựng lại bảng lịch sử in từ dữ liệu hiện có. */
+            function renderHistoryTable() {
+                let html = `
+                    <thead class="bg-gray-50 sticky top-0">
+                        <tr>
+                            <th class="px-4 py-3 text-center w-10"><input type="checkbox" id="headerCheckbox" onchange="toggleAllCheckboxes(this)"></th>
+                            <th class="px-4 py-3 text-left">Thời gian</th>
+                            <th class="px-4 py-3 text-left">Mã Lot</th>
+                            <th class="px-4 py-3 text-left">SKU</th>
+                            <th class="px-4 py-3 text-left">Tên TP</th>
+                            <th class="px-4 py-3 text-center">Tổ/Nhóm</th>
+                            <th class="px-4 py-3 text-center">Số lượng</th>
+                            <th class="px-4 py-3 text-center">STT đầu</th>
+                            <th class="px-4 py-3 text-center">STT cuối</th>
+                            <th class="px-4 py-3 text-right">Quy Cách</th>
+                            <th class="px-4 py-3 text-right">Tổng KL (kg)</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                
+                printHistory.forEach(item => {
+                    const kg = parseFloat(item.quyCach) || 20;
+                    const tongKL = (item.soLuong * kg).toFixed(0);
+                    const isChecked = selectedHistoryIds.has(item.id);
+                    
+                    html += `
+                        <tr class="border-b hover:bg-gray-50" data-id="${item.id}">
+                            <td class="px-4 py-3 text-center">
+                                <input type="checkbox" class="history-checkbox" 
+                                    onchange="toggleHistorySelection('${item.id}', this)"
+                                    ${isChecked ? 'checked' : ''}>
+                            </td>
+                            <td class="px-4 py-3 text-xs">${new Date(item.timestamp?.toDate() || item.timestamp).toLocaleString('vi-VN')}</td>
+                            <td class="px-4 py-3 font-mono">${item.maBTP || ''}</td>
+                            <td class="px-4 py-3 font-mono">${item.sku || ''}</td>
+                            <td class="px-4 py-3">${item.tenTP || ''}</td>
+                            <td class="px-4 py-3 text-center">${item.toSanXuat || 'Tèo'}</td>
+                            <td class="px-4 py-3 text-center font-semibold">${item.soLuong || 0}</td>
+                            <td class="px-4 py-3 text-center font-mono">${item.sttDau || 0}</td>
+                            <td class="px-4 py-3 text-center font-mono">${item.sttCuoi || 0}</td>
+                            <td class="px-4 py-3 text-right">${item.quyCach}</td>
+                            <td class="px-4 py-3 text-right font-bold">${tongKL} kg</td>
+                        </tr>`;
+                });
+                html += `</tbody>`;
+                document.getElementById('historyTable').innerHTML = html;
+            }
+
+            /** Thêm hoặc bỏ một bản ghi khỏi tập đang chọn. */
+            function toggleHistorySelection(id, checkbox) {
+                if (checkbox.checked) {
+                    selectedHistoryIds.add(id);
+                } else {
+                    selectedHistoryIds.delete(id);
+                }
+            }
+
+            /** Đồng bộ trạng thái chọn của tất cả bản ghi đang hiển thị. */
+            function toggleAllCheckboxes(headerCheckbox) {
+                const checkboxes = document.querySelectorAll('.history-checkbox');
+                checkboxes.forEach(cb => {
+                    cb.checked = headerCheckbox.checked;
+                    const id = cb.closest('tr').dataset.id;
+                    if (headerCheckbox.checked) selectedHistoryIds.add(id);
+                    else selectedHistoryIds.delete(id);
+                });
+            }
+
+            /** Đảo trạng thái của ô chọn tất cả. */
+            function toggleSelectAll() {
+                const header = document.getElementById('headerCheckbox');
+                if (header) {
+                    header.checked = !header.checked;
+                    toggleAllCheckboxes(header);
+                }
+            }
+
+            // ==================== IN LẠI TỪ LỊCH SỬ ====================
+            /** Nạp một bản ghi lịch sử vào biểu mẫu để in lại. */
+            function reprintFromHistory() {
+                if (selectedHistoryIds.size === 0) {
+                    alert("Vui lòng tích chọn ít nhất một bản ghi để in lại!");
+                    return;
+                }
+                if (selectedHistoryIds.size > 1) {
+                    alert("Chỉ hỗ trợ in lại một bản ghi một lúc. Vui lòng chọn duy nhất 1 item.");
+                    return;
+                }
+
+                const id = Array.from(selectedHistoryIds)[0];
+                const item = printHistory.find(p => p.id === id);
+                if (!item) {
+                    alert("Không tìm thấy dữ liệu!");
+                    return;
+                }
+
+                switchTab(0);
+
+                document.getElementById('maBTP').value = item.maBTP || '';
+                document.getElementById('sku').value = item.sku || '';
+                document.getElementById('tenTP').value = item.tenTP || '';
+                document.getElementById('quyCach').value = item.quyCach || '20kg';
+                document.getElementById('toSanXuat').value = item.toSanXuat || 'Tèo';
+                syncControlsFromLot();
+                document.getElementById('sttDau').value = Number.isFinite(item.sttDau) ? item.sttDau : 0;
+                document.getElementById('soLuongTem').value = item.soLuong || 1;
+                updateSttCuoi();
+                updatePreview();
+
+                setTimeout(() => {
+                    alert(`✅ Đã load thông tin in lại cho STT ${item.sttDau || ''} - ${item.sttCuoi || ''}\nHãy bấm nút "IN LẠI" màu cam để in lại.`);
+                }, 400);
+            }
+
+            // ==================== XÓA BẢN GHI ĐÃ CHỌN ====================
+            /** Xóa các bản ghi lịch sử được chọn bằng một batch Firestore. */
+            async function deleteSelectedHistory() {
+                if (selectedHistoryIds.size === 0) {
+                    alert("Vui lòng tích chọn ít nhất một bản ghi để xóa!");
+                    return;
+                }
+                if (!confirm(`Bạn có chắc muốn xóa ${selectedHistoryIds.size} bản ghi lịch sử?`)) return;
+
+                try {
+                    const batch = db.batch();
+                    selectedHistoryIds.forEach(id => {
+                        batch.delete(db.collection("printHistory").doc(id));
+                    });
+                    await batch.commit();
+                    alert(`✅ Đã xóa ${selectedHistoryIds.size} bản ghi!`);
+                    selectedHistoryIds.clear();
+                } catch (error) {
+                    alert("Lỗi: " + error.message);
+                }
+            }
+
+            // ==================== XUẤT BÁO CÁO RA EXCEL ====================
+            /** Xuất toàn bộ lịch sử in hiện tại thành tệp Excel. */
+            function exportReportExcel() {
+                if (printHistory.length === 0) return alert("Chưa có dữ liệu!");
+                const data = printHistory.map(item => ({
+                    "Thời gian": new Date(item.timestamp?.toDate() || item.timestamp).toLocaleString('vi-VN'),
+                    "Mã Lot": item.maBTP,
+                    "SKU": item.sku,
+                    "Tên Thành Phẩm": item.tenTP,
+                    "Tổ/Nhóm": item.toSanXuat || 'Tèo',
+                    "Số lượng tem": item.soLuong,
+                    "Quy Cách": item.quyCach,
+                    "Tổng khối lượng (kg)": item.soLuong * (parseFloat(item.quyCach) || 20)
+                }));
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "BaoCao");
+                XLSX.writeFile(wb, `BaoCao_In_${new Date().toISOString().slice(0,10)}.xlsx`);
+            }
+
+            // ==================== GHI LỊCH SỬ IN TEM ====================
+            /** Ghi thông tin lần in mới vào lịch sử Firestore. */
+            async function logPrint() {
+                const data = {
+                    maBTP: document.getElementById('maBTP').value || '',
                     sku: document.getElementById('sku').value || '',
                     tenTP: document.getElementById('tenTP').value || '',
-                    maBTP: document.getElementById('maBTP').value || '',
-                    nextSTT: nextSTT,
-                    lastSttDau: sttDau,
-                    lastSttCuoi: sttCuoi,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-                lastLoadedProductKey = counterKey;
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        // ==================== TẢI DỮ LIỆU SẢN PHẨM TỪ FIREBASE ====================
-        /** Theo dõi thay đổi danh sách thành phẩm theo thời gian thực. */
-        function loadProductsFromFirebase() {
-            if (!firebaseReady || !db) {
-                setFirebaseStatus("⚠️ Chưa kết nối database để tải dữ liệu", true);
-                return;
-            }
-            db.collection("thanhpham").orderBy("stt").onSnapshot((snapshot) => {
-                products = [];
-                snapshot.forEach((doc) => {
-                    products.push({ id: doc.id, ...doc.data() });
-                });
-                populateGrid();
-            });
-        }
-
-        // ==================== TẢI LỊCH SỬ IN TEM ====================
-        /** Theo dõi lịch sử in và cập nhật các chỉ số báo cáo. */
-        function loadPrintHistory() {
-            if (!firebaseReady || !db) {
-                setFirebaseStatus("⚠️ Chưa kết nối database để tải lịch sử", true);
-                return;
-            }
-            db.collection("printHistory").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
-                printHistory = [];
-                let total = 0;
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    data.id = doc.id;
-                    printHistory.push(data);
-                    total += (data.soLuong || 0);
-                });
-
-                document.getElementById('totalTem').textContent = total.toLocaleString('vi-VN');
-                document.getElementById('lastSTT').textContent = printHistory.length ? printHistory[0].sttCuoi : 0;
-                document.getElementById('temHong').textContent = "0";
-                document.getElementById('lastUpdate').textContent = printHistory.length ? 
-                    new Date(printHistory[0].timestamp?.toDate() || Date.now()).toLocaleString('vi-VN') : "Chưa có";
-
-                renderHistoryTable();
-            });
-        }
-
-        // ==================== HIỂN THỊ BẢNG LỊCH SỬ ====================
-        /** Dựng lại bảng lịch sử in từ dữ liệu hiện có. */
-        function renderHistoryTable() {
-            let html = `
-                <thead class="bg-gray-50 sticky top-0">
-                    <tr>
-                        <th class="px-4 py-3 text-center w-10"><input type="checkbox" id="headerCheckbox" onchange="toggleAllCheckboxes(this)"></th>
-                        <th class="px-4 py-3 text-left">Thời gian</th>
-                        <th class="px-4 py-3 text-left">Mã Lot</th>
-                        <th class="px-4 py-3 text-left">SKU</th>
-                        <th class="px-4 py-3 text-left">Tên TP</th>
-                        <th class="px-4 py-3 text-center">Tổ/Nhóm</th>
-                        <th class="px-4 py-3 text-center">Số lượng</th>
-                        <th class="px-4 py-3 text-center">STT đầu</th>
-                        <th class="px-4 py-3 text-center">STT cuối</th>
-                        <th class="px-4 py-3 text-right">Quy Cách</th>
-                        <th class="px-4 py-3 text-right">Tổng KL (kg)</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-            
-            printHistory.forEach(item => {
-                const kg = parseFloat(item.quyCach) || 20;
-                const tongKL = (item.soLuong * kg).toFixed(0);
-                const isChecked = selectedHistoryIds.has(item.id);
-                
-                html += `
-                    <tr class="border-b hover:bg-gray-50" data-id="${item.id}">
-                        <td class="px-4 py-3 text-center">
-                            <input type="checkbox" class="history-checkbox" 
-                                   onchange="toggleHistorySelection('${item.id}', this)"
-                                   ${isChecked ? 'checked' : ''}>
-                        </td>
-                        <td class="px-4 py-3 text-xs">${new Date(item.timestamp?.toDate() || item.timestamp).toLocaleString('vi-VN')}</td>
-                        <td class="px-4 py-3 font-mono">${item.maBTP || ''}</td>
-                        <td class="px-4 py-3 font-mono">${item.sku || ''}</td>
-                        <td class="px-4 py-3">${item.tenTP || ''}</td>
-                        <td class="px-4 py-3 text-center">${item.toSanXuat || 'Tèo'}</td>
-                        <td class="px-4 py-3 text-center font-semibold">${item.soLuong || 0}</td>
-                        <td class="px-4 py-3 text-center font-mono">${item.sttDau || 0}</td>
-                        <td class="px-4 py-3 text-center font-mono">${item.sttCuoi || 0}</td>
-                        <td class="px-4 py-3 text-right">${item.quyCach}</td>
-                        <td class="px-4 py-3 text-right font-bold">${tongKL} kg</td>
-                    </tr>`;
-            });
-            html += `</tbody>`;
-            document.getElementById('historyTable').innerHTML = html;
-        }
-
-        /** Thêm hoặc bỏ một bản ghi khỏi tập đang chọn. */
-        function toggleHistorySelection(id, checkbox) {
-            if (checkbox.checked) {
-                selectedHistoryIds.add(id);
-            } else {
-                selectedHistoryIds.delete(id);
-            }
-        }
-
-        /** Đồng bộ trạng thái chọn của tất cả bản ghi đang hiển thị. */
-        function toggleAllCheckboxes(headerCheckbox) {
-            const checkboxes = document.querySelectorAll('.history-checkbox');
-            checkboxes.forEach(cb => {
-                cb.checked = headerCheckbox.checked;
-                const id = cb.closest('tr').dataset.id;
-                if (headerCheckbox.checked) selectedHistoryIds.add(id);
-                else selectedHistoryIds.delete(id);
-            });
-        }
-
-        /** Đảo trạng thái của ô chọn tất cả. */
-        function toggleSelectAll() {
-            const header = document.getElementById('headerCheckbox');
-            if (header) {
-                header.checked = !header.checked;
-                toggleAllCheckboxes(header);
-            }
-        }
-
-        // ==================== IN LẠI TỪ LỊCH SỬ ====================
-        /** Nạp một bản ghi lịch sử vào biểu mẫu để in lại. */
-        function reprintFromHistory() {
-            if (selectedHistoryIds.size === 0) {
-                alert("Vui lòng tích chọn ít nhất một bản ghi để in lại!");
-                return;
-            }
-            if (selectedHistoryIds.size > 1) {
-                alert("Chỉ hỗ trợ in lại một bản ghi một lúc. Vui lòng chọn duy nhất 1 item.");
-                return;
-            }
-
-            const id = Array.from(selectedHistoryIds)[0];
-            const item = printHistory.find(p => p.id === id);
-            if (!item) {
-                alert("Không tìm thấy dữ liệu!");
-                return;
-            }
-
-            switchTab(0);
-
-            document.getElementById('maBTP').value = item.maBTP || '';
-            document.getElementById('sku').value = item.sku || '';
-            document.getElementById('tenTP').value = item.tenTP || '';
-            document.getElementById('quyCach').value = item.quyCach || '20kg';
-            document.getElementById('toSanXuat').value = item.toSanXuat || 'Tèo';
-            syncControlsFromLot();
-            document.getElementById('sttDau').value = Number.isFinite(item.sttDau) ? item.sttDau : 0;
-            document.getElementById('soLuongTem').value = item.soLuong || 1;
-            updateSttCuoi();
-            updatePreview();
-
-            setTimeout(() => {
-                alert(`✅ Đã load thông tin in lại cho STT ${item.sttDau || ''} - ${item.sttCuoi || ''}\nHãy bấm nút "IN LẠI" màu cam để in lại.`);
-            }, 400);
-        }
-
-        // ==================== XÓA BẢN GHI ĐÃ CHỌN ====================
-        /** Xóa các bản ghi lịch sử được chọn bằng một batch Firestore. */
-        async function deleteSelectedHistory() {
-            if (selectedHistoryIds.size === 0) {
-                alert("Vui lòng tích chọn ít nhất một bản ghi để xóa!");
-                return;
-            }
-            if (!confirm(`Bạn có chắc muốn xóa ${selectedHistoryIds.size} bản ghi lịch sử?`)) return;
-
-            try {
-                const batch = db.batch();
-                selectedHistoryIds.forEach(id => {
-                    batch.delete(db.collection("printHistory").doc(id));
-                });
-                await batch.commit();
-                alert(`✅ Đã xóa ${selectedHistoryIds.size} bản ghi!`);
-                selectedHistoryIds.clear();
-            } catch (error) {
-                alert("Lỗi: " + error.message);
-            }
-        }
-
-        // ==================== XUẤT BÁO CÁO RA EXCEL ====================
-        /** Xuất toàn bộ lịch sử in hiện tại thành tệp Excel. */
-        function exportReportExcel() {
-            if (printHistory.length === 0) return alert("Chưa có dữ liệu!");
-            const data = printHistory.map(item => ({
-                "Thời gian": new Date(item.timestamp?.toDate() || item.timestamp).toLocaleString('vi-VN'),
-                "Mã Lot": item.maBTP,
-                "SKU": item.sku,
-                "Tên Thành Phẩm": item.tenTP,
-                "Tổ/Nhóm": item.toSanXuat || 'Tèo',
-                "Số lượng tem": item.soLuong,
-                "Quy Cách": item.quyCach,
-                "Tổng khối lượng (kg)": item.soLuong * (parseFloat(item.quyCach) || 20)
-            }));
-            const ws = XLSX.utils.json_to_sheet(data);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "BaoCao");
-            XLSX.writeFile(wb, `BaoCao_In_${new Date().toISOString().slice(0,10)}.xlsx`);
-        }
-
-        // ==================== GHI LỊCH SỬ IN TEM ====================
-        /** Ghi thông tin lần in mới vào lịch sử Firestore. */
-        async function logPrint() {
-            const data = {
-                maBTP: document.getElementById('maBTP').value || '',
-                sku: document.getElementById('sku').value || '',
-                tenTP: document.getElementById('tenTP').value || '',
-                toSanXuat: document.getElementById('toSanXuat').value || 'Tèo',
-                quyCach: document.getElementById('quyCach').value || '20kg',
-                soLuong: parseInt(document.getElementById('soLuongTem').value) || 1,
-                sttDau: toNonNegativeInt(document.getElementById('sttDau').value, 0),
-                sttCuoi: toNonNegativeInt(document.getElementById('sttCuoi').value, 0),
-                productKey: getProductKey(),
-                counterDate: getVietnamDateKey(),
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            await db.collection("printHistory").add(data);
-        }
-
-        /** In một tài liệu HTML trong iframe tạm và dọn tài nguyên sau khi hoàn tất. */
-        function printHtmlOnce(html, { waitForAfterPrint = false } = {}) {
-            return new Promise((resolve, reject) => {
-                const iframe = document.createElement('iframe');
-                iframe.style.position = 'fixed';
-                iframe.style.right = '0';
-                iframe.style.bottom = '0';
-                iframe.style.width = '0';
-                iframe.style.height = '0';
-                iframe.style.border = '0';
-                iframe.setAttribute('aria-hidden', 'true');
-                document.body.appendChild(iframe);
-
-                const cleanup = () => {
-                    if (iframe && iframe.parentNode) {
-                        // Một số trình duyệt hoặc trình điều khiển không phát sự kiện afterprint.
-                    }
+                    toSanXuat: document.getElementById('toSanXuat').value || 'Tèo',
+                    quyCach: document.getElementById('quyCach').value || '20kg',
+                    soLuong: parseInt(document.getElementById('soLuongTem').value) || 1,
+                    sttDau: toNonNegativeInt(document.getElementById('sttDau').value, 0),
+                    sttCuoi: toNonNegativeInt(document.getElementById('sttCuoi').value, 0),
+                    productKey: getProductKey(),
+                    counterDate: getVietnamDateKey(),
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 };
+                await db.collection("printHistory").add(data);
+            }
 
-                const doc = iframe.contentWindow?.document;
-                if (!doc || !iframe.contentWindow) {
-                    cleanup();
-                    reject(new Error('Không khởi tạo được tài liệu in.'));
-                    return;
-                }
+            /** In một tài liệu HTML trong iframe tạm và dọn tài nguyên sau khi hoàn tất. */
+            function printHtmlOnce(html, { waitForAfterPrint = false } = {}) {
+                return new Promise((resolve, reject) => {
+                    const iframe = document.createElement('iframe');
+                    iframe.style.position = 'fixed';
+                    iframe.style.right = '0';
+                    iframe.style.bottom = '0';
+                    iframe.style.width = '0';
+                    iframe.style.height = '0';
+                    iframe.style.border = '0';
+                    iframe.setAttribute('aria-hidden', 'true');
+                    document.body.appendChild(iframe);
 
-                let done = false;
-                const complete = (result = { status: 'completed' }) => {
-                    if (done) return;
-                    done = true;
-                    cleanup();
-                    resolve(result);
-                };
-
-                const waitForDocumentReady = async () => {
-                    const images = Array.from(doc.images || []);
-                    const imagePromises = images
-                        .filter((img) => !img.complete)
-                        .map((img) => new Promise((resolveImage) => {
-                            const finish = () => resolveImage();
-                            img.addEventListener('load', finish, { once: true });
-                            img.addEventListener('error', finish, { once: true });
-                        }));
-
-                    if (imagePromises.length) {
-                        await Promise.all(imagePromises);
-                    }
-
-                    if (doc.fonts && doc.fonts.ready) {
-                        try {
-                            await Promise.race([
-                                doc.fonts.ready,
-                                new Promise((resolveFontTimeout) => setTimeout(resolveFontTimeout, 1200))
-                            ]);
-                        } catch (e) {
-                            console.error(e);
+                    const cleanup = () => {
+                        if (iframe && iframe.parentNode) {
+                            // Một số trình duyệt hoặc trình điều khiển không phát sự kiện afterprint.
                         }
-                    }
-
-                    await new Promise((rafDone) => requestAnimationFrame(() => requestAnimationFrame(rafDone)));
-                };
-
-                const handleLoad = async () => {
-                    const printWin = iframe.contentWindow;
-                    if (!printWin) {
-                        cleanup();
-                        reject(new Error('Không truy cập được cửa sổ in.'));
-                        return;
-                    }
-
-                    try {
-                        await waitForDocumentReady();
-                    } catch (error) {
-                        console.error(error);
-                    }
-
-                    printWin.onafterprint = () => {
-                        complete({ status: 'afterprint' });
                     };
 
-                    setTimeout(() => {
-                        try {
-                            printWin.focus();
-                            printWin.print();
-                            if (!waitForAfterPrint) {
-                                complete({ status: 'print-started' });
-                            }
-                        } catch (error) {
-                            cleanup();
-                            reject(error);
-                        }
-                    }, 80);
-
-                    if (waitForAfterPrint) {
-                        // Một số trình duyệt hoặc trình điều khiển không phát sự kiện sau khi in.
-                        setTimeout(() => complete({ status: 'timeout-fallback' }), 20000);
-                    }
-                };
-
-                iframe.addEventListener('load', handleLoad, { once: true });
-                doc.open();
-                doc.write(html);
-                doc.close();
-            });
-        }
-
-        // ==================== IN NHÃN THỰC TẾ ====================
-        /** Tạo các nhãn, mở hộp thoại in và cập nhật lịch sử sau khi xác nhận thành công. */
-        async function printLabels(isReprint = false) {
-            if (isPrinting) return;
-
-            clearTimeout(productSttLoadTimer);
-            productSttLoadTimer = null;
-
-            await ensureCurrentProductCounterLoaded();
-
-            updateSttCuoi();
-
-            const sttDau = toNonNegativeInt(document.getElementById('sttDau').value, 0);
-            const count = toPositiveInt(document.getElementById('soLuongTem').value, 1);
-            const sttCuoi = sttDau + count - 1;
-            const labelSnapshot = getLabelSnapshotData();
-
-            isPrinting = true;
-
-            const printStyles = `
-                <style>
-                    @page { size: 90mm 60mm; margin: 0mm !important; }
-                    html, body {
-                        width: 90mm;
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        background: #ffffff !important;
-                        color: #000000 !important;
-                        font-family: Tahoma, Arial, sans-serif;
-                        font-weight: 700;
-                        letter-spacing: -0.2px;
-                        -webkit-print-color-adjust: exact;
-                        print-color-adjust: exact;
-                    }
-                    .label {
-                        width: 90mm;
-                        height: 60mm;
-                        display: block;
-                        box-sizing: border-box;
-                        overflow: hidden;
-                        background: #ffffff !important;
-                        color: #000000 !important;
-                        page-break-after: always;
-                    }
-                    .label:last-child { page-break-after: auto; }
-                    .lbl-inner {
-                        padding: 1.2mm 3.5mm 1.8mm 3.5mm;
-                        height: 100%;
-                        box-sizing: border-box;
-                        background: #ffffff !important;
-                        color: #000000 !important;
-                        font-size: 9.0pt;
-                        line-height: 1.15;
-                    }
-                    .lbl-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
-                    .lbl-top { font-size: 7.8pt; font-weight: 700; }
-                    .lbl-name { font-size: 12.8pt; font-weight: 800; text-align: center; margin: 4px 0 6px; line-height: 1.05; }
-                    .lbl-rule { border: 0; border-top: 1px solid #000; margin: 3px 0 5px; }
-                    .lbl-right { text-align: right; }
-                    .lbl-index { font-size: 15.8pt; font-weight: 800; }
-                    .lbl-region { margin-bottom: 3px; font-weight: 700; }
-                    .lbl-date { display: flex; justify-content: space-between; font-size: 9.0pt; margin-top: 5px; }
-                </style>
-            `;
-
-            try {
-                const labelHtml = new Array(count);
-                for (let i = 0; i < count; i++) {
-                    labelHtml[i] = `<div class="label">${buildLabelHtmlCompact(sttDau + i, labelSnapshot)}</div>`;
-                }
-
-                const printHtml = `<html><head><title>${isReprint ? 'In Lại' : 'In Nhãn'}</title>${printStyles}</head><body>${labelHtml.join('')}</body></html>`;
-                await printHtmlOnce(printHtml, { waitForAfterPrint: true });
-
-                if (!isReprint) {
-                    const confirmedPrinted = confirm('Máy in đã in thành công chưa?\nChọn OK nếu đã in thành công để ghi lịch sử và tăng STT.\nChọn Cancel nếu máy in lỗi hoặc chưa in để giữ nguyên STT.');
-                    if (!confirmedPrinted) {
-                        alert('Đã giữ nguyên STT và không ghi lịch sử in vì chưa xác nhận in thành công.');
+                    const doc = iframe.contentWindow?.document;
+                    if (!doc || !iframe.contentWindow) {
+                        cleanup();
+                        reject(new Error('Không khởi tạo được tài liệu in.'));
                         return;
                     }
 
-                    const nextSTT = sttCuoi + 1;
-                    document.getElementById('sttDau').value = nextSTT;
-                    updateSttCuoi();
+                    let done = false;
+                    const complete = (result = { status: 'completed' }) => {
+                        if (done) return;
+                        done = true;
+                        cleanup();
+                        resolve(result);
+                    };
 
-                    Promise.allSettled([
-                        logPrint(),
-                        saveProductSTT(nextSTT, sttDau, sttCuoi)
-                    ]).catch((e) => console.error(e));
-                } else {
-                    alert(`✅ Đã in lại ${count} tem (KHÔNG ghi log - KHÔNG tăng tổng số lượng)`);
-                }
-            } finally {
-                isPrinting = false;
+                    const waitForDocumentReady = async () => {
+                        const images = Array.from(doc.images || []);
+                        const imagePromises = images
+                            .filter((img) => !img.complete)
+                            .map((img) => new Promise((resolveImage) => {
+                                const finish = () => resolveImage();
+                                img.addEventListener('load', finish, { once: true });
+                                img.addEventListener('error', finish, { once: true });
+                            }));
+
+                        if (imagePromises.length) {
+                            await Promise.all(imagePromises);
+                        }
+
+                        if (doc.fonts && doc.fonts.ready) {
+                            try {
+                                await Promise.race([
+                                    doc.fonts.ready,
+                                    new Promise((resolveFontTimeout) => setTimeout(resolveFontTimeout, 1200))
+                                ]);
+                            } catch (e) {
+                                console.error(e);
+                            }
+                        }
+
+                        await new Promise((rafDone) => requestAnimationFrame(() => requestAnimationFrame(rafDone)));
+                    };
+
+                    const handleLoad = async () => {
+                        const printWin = iframe.contentWindow;
+                        if (!printWin) {
+                            cleanup();
+                            reject(new Error('Không truy cập được cửa sổ in.'));
+                            return;
+                        }
+
+                        try {
+                            await waitForDocumentReady();
+                        } catch (error) {
+                            console.error(error);
+                        }
+
+                        printWin.onafterprint = () => {
+                            complete({ status: 'afterprint' });
+                        };
+
+                        setTimeout(() => {
+                            try {
+                                printWin.focus();
+                                printWin.print();
+                                if (!waitForAfterPrint) {
+                                    complete({ status: 'print-started' });
+                                }
+                            } catch (error) {
+                                cleanup();
+                                reject(error);
+                            }
+                        }, 80);
+
+                        if (waitForAfterPrint) {
+                            // Một số trình duyệt hoặc trình điều khiển không phát sự kiện sau khi in.
+                            setTimeout(() => complete({ status: 'timeout-fallback' }), 20000);
+                        }
+                    };
+
+                    iframe.addEventListener('load', handleLoad, { once: true });
+                    doc.open();
+                    doc.write(html);
+                    doc.close();
+                });
             }
-        }
 
-        /** Chụp dữ liệu biểu mẫu tại thời điểm bắt đầu in hoặc xuất PDF. */
-        function getLabelSnapshotData() {
-            const sku = (document.getElementById('sku').value || '').trim();
-            const maBTP = (document.getElementById('maBTP').value || 'LOT').trim();
-            const tenTP = (document.getElementById('tenTP').value || 'TP CẤP ĐÔNG SẦU RIÊNG...').trim();
-            const toSanXuat = (document.getElementById('toSanXuat').value || 'Tèo').trim();
-            const quyCach = (document.getElementById('quyCach').value || '20kg').trim();
-            const regionSelect = document.getElementById('vungNguyenLieu');
-            const selectedRegionText = regionSelect && regionSelect.selectedOptions[0]
-                ? regionSelect.selectedOptions[0].textContent || ''
-                : '';
-            const vungFull = selectedRegionText.includes(' - ')
-                ? selectedRegionText.split(' - ')[1].trim()
-                : (selectedRegionText || 'Miền Tây');
-            const ngaySX = document.getElementById('ngaySX').value ? document.getElementById('ngaySX').value.split('-').reverse().join('/') : '22/06/2026';
-            const ngayDG = document.getElementById('ngayDG').value ? document.getElementById('ngayDG').value.split('-').reverse().join('/') : ngaySX;
-            return { sku, maBTP, tenTP, toSanXuat, quyCach, vungFull, ngaySX, ngayDG };
-        }
+            // ==================== IN NHÃN THỰC TẾ ====================
+            /** Tạo các nhãn, mở hộp thoại in và cập nhật lịch sử sau khi xác nhận thành công. */
+            async function printLabels(isReprint = false) {
+                if (isPrinting) return;
 
-        /** Chia văn bản thành các dòng vừa với chiều rộng canvas. */
-        function wrapTextLines(ctx, text, maxWidth) {
-            const words = String(text || '').trim().split(/\s+/).filter(Boolean);
-            if (!words.length) return [];
+                clearTimeout(productSttLoadTimer);
+                productSttLoadTimer = null;
 
-            const lines = [];
-            let currentLine = words[0];
+                await ensureCurrentProductCounterLoaded();
 
-            for (let i = 1; i < words.length; i++) {
-                const candidate = `${currentLine} ${words[i]}`;
-                if (ctx.measureText(candidate).width <= maxWidth) {
-                    currentLine = candidate;
-                } else {
-                    lines.push(currentLine);
-                    currentLine = words[i];
-                }
-            }
+                updateSttCuoi();
 
-            if (currentLine) lines.push(currentLine);
-            return lines;
-        }
+                const sttDau = toNonNegativeInt(document.getElementById('sttDau').value, 0);
+                const count = toPositiveInt(document.getElementById('soLuongTem').value, 1);
+                const sttCuoi = sttDau + count - 1;
+                const labelSnapshot = getLabelSnapshotData();
 
-        /** Co chữ và căn giữa văn bản nhiều dòng trong vùng giới hạn. */
-        function drawFittedWrappedCenterText(ctx, text, centerX, boxTop, boxHeight, maxWidth, maxLines, maxFontSize, minFontSize) {
-            const safeText = String(text || '').trim();
-            if (!safeText) return;
+                isPrinting = true;
 
-            let chosenSize = minFontSize;
-            let chosenLines = [safeText];
+                const printStyles = `
+                    <style>
+                        @page { size: 90mm 60mm; margin: 0mm !important; }
+                        html, body {
+                            width: 90mm;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            background: #ffffff !important;
+                            color: #000000 !important;
+                            font-family: Tahoma, Arial, sans-serif;
+                            font-weight: 700;
+                            letter-spacing: -0.2px;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+                        .label {
+                            width: 90mm;
+                            height: 60mm;
+                            display: block;
+                            box-sizing: border-box;
+                            overflow: hidden;
+                            background: #ffffff !important;
+                            color: #000000 !important;
+                            page-break-after: always;
+                        }
+                        .label:last-child { page-break-after: auto; }
+                        .lbl-inner {
+                            padding: 1.2mm 3.5mm 1.8mm 3.5mm;
+                            height: 100%;
+                            box-sizing: border-box;
+                            background: #ffffff !important;
+                            color: #000000 !important;
+                            font-size: 9.0pt;
+                            line-height: 1.15;
+                        }
+                        .lbl-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+                        .lbl-top { font-size: 7.8pt; font-weight: 700; }
+                        .lbl-name { font-size: 12.8pt; font-weight: 800; text-align: center; margin: 4px 0 6px; line-height: 1.05; }
+                        .lbl-rule { border: 0; border-top: 1px solid #000; margin: 3px 0 5px; }
+                        .lbl-right { text-align: right; }
+                        .lbl-index { font-size: 15.8pt; font-weight: 800; }
+                        .lbl-region { margin-bottom: 3px; font-weight: 700; }
+                        .lbl-date { display: flex; justify-content: space-between; font-size: 9.0pt; margin-top: 5px; }
+                    </style>
+                `;
 
-            for (let size = maxFontSize; size >= minFontSize; size--) {
-                ctx.font = `800 ${size}px Tahoma, Arial, sans-serif`;
-                const lines = wrapTextLines(ctx, safeText, maxWidth);
-                if (lines.length <= maxLines) {
-                    chosenSize = size;
-                    chosenLines = lines;
-                    break;
-                }
-                if (size === minFontSize) {
-                    chosenSize = size;
-                    chosenLines = lines.slice(0, maxLines);
-                }
-            }
+                try {
+                    const labelHtml = new Array(count);
+                    for (let i = 0; i < count; i++) {
+                        labelHtml[i] = `<div class="label">${buildLabelHtmlCompact(sttDau + i, labelSnapshot)}</div>`;
+                    }
 
-            const lineHeight = Math.round(chosenSize * 1.08);
-            const totalHeight = chosenLines.length * lineHeight;
-            const startY = boxTop + Math.max(0, Math.floor((boxHeight - totalHeight) / 2));
+                    const printHtml = `<html><head><title>${isReprint ? 'In Lại' : 'In Nhãn'}</title>${printStyles}</head><body>${labelHtml.join('')}</body></html>`;
+                    await printHtmlOnce(printHtml, { waitForAfterPrint: true });
 
-            ctx.font = `800 ${chosenSize}px Tahoma, Arial, sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
-            for (let i = 0; i < chosenLines.length; i++) {
-                ctx.fillText(chosenLines[i], centerX, startY + i * lineHeight);
-            }
-        }
+                    if (!isReprint) {
+                        const confirmedPrinted = confirm('Máy in đã in thành công chưa?\nChọn OK nếu đã in thành công để ghi lịch sử và tăng STT.\nChọn Cancel nếu máy in lỗi hoặc chưa in để giữ nguyên STT.');
+                        if (!confirmedPrinted) {
+                            alert('Đã giữ nguyên STT và không ghi lịch sử in vì chưa xác nhận in thành công.');
+                            return;
+                        }
 
-        /** Vẽ phần nội dung cố định của nhãn lên canvas độ phân giải cao. */
-        function createLabelTemplateCanvas(data) {
-            const width = 900;
-            const height = 600;
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) throw new Error('Không tạo được canvas.');
+                        const nextSTT = sttCuoi + 1;
+                        document.getElementById('sttDau').value = nextSTT;
+                        updateSttCuoi();
 
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, width, height);
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(1.5, 1.5, width - 3, height - 3);
-
-            ctx.fillStyle = '#000000';
-            ctx.textBaseline = 'top';
-
-            ctx.font = '700 24px Tahoma, Arial, sans-serif';
-            ctx.textAlign = 'left';
-            if (data.sku) ctx.fillText(`Mã SKU: ${data.sku}`, 34, 28);
-            ctx.textAlign = 'right';
-            ctx.fillText(`Lot: ${data.maBTP}`, 866, 28);
-
-            drawFittedWrappedCenterText(ctx, data.tenTP, width / 2, 48, 150, 790, 3, 44, 30);
-
-            ctx.beginPath();
-            ctx.moveTo(28, 196);
-            ctx.lineTo(872, 196);
-            ctx.lineWidth = 3;
-            ctx.stroke();
-
-            ctx.textAlign = 'left';
-            ctx.font = '700 24px Tahoma, Arial, sans-serif';
-            ctx.fillText('Quy Cách /SPEC', 34, 214);
-            ctx.font = '700 32px Tahoma, Arial, sans-serif';
-            ctx.fillText(`Thùng/túi: ${data.quyCach}`, 34, 246);
-
-            ctx.textAlign = 'right';
-            ctx.font = '700 24px Tahoma, Arial, sans-serif';
-            ctx.fillText('KHỐI LƯỢNG /WEIGHT', 866, 214);
-            ctx.font = '700 36px Tahoma, Arial, sans-serif';
-            ctx.fillText(data.quyCach, 866, 246);
-
-            ctx.textAlign = 'left';
-            ctx.font = '700 24px Tahoma, Arial, sans-serif';
-            ctx.fillText('TỔ/NHÓM', 34, 304);
-            ctx.font = '800 34px Tahoma, Arial, sans-serif';
-            ctx.fillText(data.toSanXuat || 'Tèo', 34, 336);
-
-            ctx.textAlign = 'right';
-            ctx.font = '700 24px Tahoma, Arial, sans-serif';
-            ctx.fillText('STT/INDEX', 866, 304);
-
-            ctx.textAlign = 'left';
-            ctx.font = '700 26px Tahoma, Arial, sans-serif';
-            ctx.fillText('VÙNG NGUYÊN LIỆU', 34, 404);
-            ctx.font = '800 34px Tahoma, Arial, sans-serif';
-            ctx.fillText(data.vungFull, 34, 438);
-
-            ctx.font = '700 30px Tahoma, Arial, sans-serif';
-            ctx.fillText(`Ngày SX: ${data.ngaySX}`, 34, 530);
-            ctx.textAlign = 'right';
-            ctx.fillText(`Ngày ĐG: ${data.ngayDG}`, 866, 530);
-
-            return canvas;
-        }
-
-        /** Tạo nhanh tệp PDF nhiều trang từ mẫu canvas và STT thay đổi. */
-        async function exportPdfFast(JsPDFCtor, filename, sttDau, count) {
-            const template = createLabelTemplateCanvas(getLabelSnapshotData());
-            const pageCanvas = document.createElement('canvas');
-            pageCanvas.width = template.width;
-            pageCanvas.height = template.height;
-            const pageCtx = pageCanvas.getContext('2d');
-            if (!pageCtx) throw new Error('Không tạo được canvas trang PDF.');
-
-            const doc = new JsPDFCtor({
-                orientation: 'landscape',
-                unit: 'mm',
-                format: [90, 60],
-                compress: true
-            });
-
-            for (let i = 0; i < count; i++) {
-                pageCtx.fillStyle = '#ffffff';
-                pageCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-                pageCtx.drawImage(template, 0, 0);
-
-                pageCtx.fillStyle = '#000000';
-                pageCtx.textAlign = 'right';
-                pageCtx.textBaseline = 'top';
-                pageCtx.font = '800 74px Tahoma, Arial, sans-serif';
-                pageCtx.fillText(String(sttDau + i), 866, 336);
-
-                const imgData = pageCanvas.toDataURL('image/jpeg', 0.72);
-                if (i > 0) doc.addPage([90, 60], 'landscape');
-                doc.addImage(imgData, 'JPEG', 0, 0, 90, 60, undefined, 'FAST');
-
-                // Nhường luồng xử lý định kỳ để giao diện không bị treo khi xuất nhiều trang.
-                if ((i + 1) % 10 === 0) {
-                    await new Promise((resolve) => setTimeout(resolve, 0));
+                        Promise.allSettled([
+                            logPrint(),
+                            saveProductSTT(nextSTT, sttDau, sttCuoi)
+                        ]).catch((e) => console.error(e));
+                    } else {
+                        alert(`✅ Đã in lại ${count} tem (KHÔNG ghi log - KHÔNG tăng tổng số lượng)`);
+                    }
+                } finally {
+                    isPrinting = false;
                 }
             }
 
-            doc.save(filename);
-        }
-
-        /** Tải nhãn dưới dạng PDF, ưu tiên jsPDF và dùng html2pdf khi cần. */
-        async function downloadPdfLabels() {
-            if (isPrinting) {
-                alert('Hệ thống đang xử lý in, vui lòng đợi xong rồi tải PDF.');
-                return;
+            /** Chụp dữ liệu biểu mẫu tại thời điểm bắt đầu in hoặc xuất PDF. */
+            function getLabelSnapshotData() {
+                const sku = (document.getElementById('sku').value || '').trim();
+                const maBTP = (document.getElementById('maBTP').value || 'LOT').trim();
+                const tenTP = (document.getElementById('tenTP').value || 'TP CẤP ĐÔNG SẦU RIÊNG...').trim();
+                const toSanXuat = (document.getElementById('toSanXuat').value || 'Tèo').trim();
+                const quyCach = (document.getElementById('quyCach').value || '20kg').trim();
+                const regionSelect = document.getElementById('vungNguyenLieu');
+                const selectedRegionText = regionSelect && regionSelect.selectedOptions[0]
+                    ? regionSelect.selectedOptions[0].textContent || ''
+                    : '';
+                const vungFull = selectedRegionText.includes(' - ')
+                    ? selectedRegionText.split(' - ')[1].trim()
+                    : (selectedRegionText || 'Miền Tây');
+                const ngaySX = document.getElementById('ngaySX').value ? document.getElementById('ngaySX').value.split('-').reverse().join('/') : '22/06/2026';
+                const ngayDG = document.getElementById('ngayDG').value ? document.getElementById('ngayDG').value.split('-').reverse().join('/') : ngaySX;
+                return { sku, maBTP, tenTP, toSanXuat, quyCach, vungFull, ngaySX, ngayDG };
             }
 
-            const JsPDFCtor = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : (window.jsPDF || null);
-            const canUseHtml2Pdf = typeof html2pdf !== 'undefined';
+            /** Chia văn bản thành các dòng vừa với chiều rộng canvas. */
+            function wrapTextLines(ctx, text, maxWidth) {
+                const words = String(text || '').trim().split(/\s+/).filter(Boolean);
+                if (!words.length) return [];
 
-            if (!JsPDFCtor && !canUseHtml2Pdf) {
-                alert('Thiếu thư viện xuất PDF. Vui lòng kiểm tra mạng rồi tải lại trang.');
-                return;
+                const lines = [];
+                let currentLine = words[0];
+
+                for (let i = 1; i < words.length; i++) {
+                    const candidate = `${currentLine} ${words[i]}`;
+                    if (ctx.measureText(candidate).width <= maxWidth) {
+                        currentLine = candidate;
+                    } else {
+                        lines.push(currentLine);
+                        currentLine = words[i];
+                    }
+                }
+
+                if (currentLine) lines.push(currentLine);
+                return lines;
             }
 
-            clearTimeout(productSttLoadTimer);
-            productSttLoadTimer = null;
+            /** Co chữ và căn giữa văn bản nhiều dòng trong vùng giới hạn. */
+            function drawFittedWrappedCenterText(ctx, text, centerX, boxTop, boxHeight, maxWidth, maxLines, maxFontSize, minFontSize) {
+                const safeText = String(text || '').trim();
+                if (!safeText) return;
 
-            await ensureCurrentProductCounterLoaded();
+                let chosenSize = minFontSize;
+                let chosenLines = [safeText];
 
-            updateSttCuoi();
+                for (let size = maxFontSize; size >= minFontSize; size--) {
+                    ctx.font = `800 ${size}px Tahoma, Arial, sans-serif`;
+                    const lines = wrapTextLines(ctx, safeText, maxWidth);
+                    if (lines.length <= maxLines) {
+                        chosenSize = size;
+                        chosenLines = lines;
+                        break;
+                    }
+                    if (size === minFontSize) {
+                        chosenSize = size;
+                        chosenLines = lines.slice(0, maxLines);
+                    }
+                }
 
-            const sttDau = toNonNegativeInt(document.getElementById('sttDau').value, 0);
-            const count = toPositiveInt(document.getElementById('soLuongTem').value, 1);
-            const sttCuoi = sttDau + count - 1;
-            const lot = (document.getElementById('maBTP').value || 'LOT').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
-            const filename = `Nhan_${lot}_${sttDau}-${sttCuoi}.pdf`;
+                const lineHeight = Math.round(chosenSize * 1.08);
+                const totalHeight = chosenLines.length * lineHeight;
+                const startY = boxTop + Math.max(0, Math.floor((boxHeight - totalHeight) / 2));
 
-            try {
-                if (JsPDFCtor) {
-                    await exportPdfFast(JsPDFCtor, filename, sttDau, count);
+                ctx.font = `800 ${chosenSize}px Tahoma, Arial, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                for (let i = 0; i < chosenLines.length; i++) {
+                    ctx.fillText(chosenLines[i], centerX, startY + i * lineHeight);
+                }
+            }
+
+            /** Vẽ phần nội dung cố định của nhãn lên canvas độ phân giải cao. */
+            function createLabelTemplateCanvas(data) {
+                const width = 900;
+                const height = 600;
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) throw new Error('Không tạo được canvas.');
+
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, width, height);
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(1.5, 1.5, width - 3, height - 3);
+
+                ctx.fillStyle = '#000000';
+                ctx.textBaseline = 'top';
+
+                ctx.font = '700 24px Tahoma, Arial, sans-serif';
+                ctx.textAlign = 'left';
+                if (data.sku) ctx.fillText(`Mã SKU: ${data.sku}`, 34, 28);
+                ctx.textAlign = 'right';
+                ctx.fillText(`Lot: ${data.maBTP}`, 866, 28);
+
+                drawFittedWrappedCenterText(ctx, data.tenTP, width / 2, 48, 150, 790, 3, 44, 30);
+
+                ctx.beginPath();
+                ctx.moveTo(28, 196);
+                ctx.lineTo(872, 196);
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                ctx.textAlign = 'left';
+                ctx.font = '700 24px Tahoma, Arial, sans-serif';
+                ctx.fillText('Quy Cách /SPEC', 34, 214);
+                ctx.font = '700 32px Tahoma, Arial, sans-serif';
+                ctx.fillText(`Thùng/túi: ${data.quyCach}`, 34, 246);
+
+                ctx.textAlign = 'right';
+                ctx.font = '700 24px Tahoma, Arial, sans-serif';
+                ctx.fillText('KHỐI LƯỢNG /WEIGHT', 866, 214);
+                ctx.font = '700 36px Tahoma, Arial, sans-serif';
+                ctx.fillText(data.quyCach, 866, 246);
+
+                ctx.textAlign = 'left';
+                ctx.font = '700 24px Tahoma, Arial, sans-serif';
+                ctx.fillText('TỔ/NHÓM', 34, 304);
+                ctx.font = '800 34px Tahoma, Arial, sans-serif';
+                ctx.fillText(data.toSanXuat || 'Tèo', 34, 336);
+
+                ctx.textAlign = 'right';
+                ctx.font = '700 24px Tahoma, Arial, sans-serif';
+                ctx.fillText('STT/INDEX', 866, 304);
+
+                ctx.textAlign = 'left';
+                ctx.font = '700 26px Tahoma, Arial, sans-serif';
+                ctx.fillText('VÙNG NGUYÊN LIỆU', 34, 404);
+                ctx.font = '800 34px Tahoma, Arial, sans-serif';
+                ctx.fillText(data.vungFull, 34, 438);
+
+                ctx.font = '700 30px Tahoma, Arial, sans-serif';
+                ctx.fillText(`Ngày SX: ${data.ngaySX}`, 34, 530);
+                ctx.textAlign = 'right';
+                ctx.fillText(`Ngày ĐG: ${data.ngayDG}`, 866, 530);
+
+                return canvas;
+            }
+
+            /** Tạo nhanh tệp PDF nhiều trang từ mẫu canvas và STT thay đổi. */
+            async function exportPdfFast(JsPDFCtor, filename, sttDau, count) {
+                const template = createLabelTemplateCanvas(getLabelSnapshotData());
+                const pageCanvas = document.createElement('canvas');
+                pageCanvas.width = template.width;
+                pageCanvas.height = template.height;
+                const pageCtx = pageCanvas.getContext('2d');
+                if (!pageCtx) throw new Error('Không tạo được canvas trang PDF.');
+
+                const doc = new JsPDFCtor({
+                    orientation: 'landscape',
+                    unit: 'mm',
+                    format: [90, 60],
+                    compress: true
+                });
+
+                for (let i = 0; i < count; i++) {
+                    pageCtx.fillStyle = '#ffffff';
+                    pageCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+                    pageCtx.drawImage(template, 0, 0);
+
+                    pageCtx.fillStyle = '#000000';
+                    pageCtx.textAlign = 'right';
+                    pageCtx.textBaseline = 'top';
+                    pageCtx.font = '800 74px Tahoma, Arial, sans-serif';
+                    pageCtx.fillText(String(sttDau + i), 866, 336);
+
+                    const imgData = pageCanvas.toDataURL('image/jpeg', 0.72);
+                    if (i > 0) doc.addPage([90, 60], 'landscape');
+                    doc.addImage(imgData, 'JPEG', 0, 0, 90, 60, undefined, 'FAST');
+
+                    // Nhường luồng xử lý định kỳ để giao diện không bị treo khi xuất nhiều trang.
+                    if ((i + 1) % 10 === 0) {
+                        await new Promise((resolve) => setTimeout(resolve, 0));
+                    }
+                }
+
+                doc.save(filename);
+            }
+
+            /** Tải nhãn dưới dạng PDF, ưu tiên jsPDF và dùng html2pdf khi cần. */
+            async function downloadPdfLabels() {
+                if (isPrinting) {
+                    alert('Hệ thống đang xử lý in, vui lòng đợi xong rồi tải PDF.');
                     return;
                 }
 
-                // Phương án dự phòng chỉ được dùng khi jsPDF không khả dụng.
-                const wrapper = document.createElement('div');
-                wrapper.style.position = 'fixed';
-                wrapper.style.left = '0';
-                wrapper.style.top = '0';
-                wrapper.style.background = '#fff';
-                wrapper.style.opacity = '1';
-                wrapper.style.pointerEvents = 'none';
-                wrapper.style.zIndex = '-1';
+                const JsPDFCtor = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : (window.jsPDF || null);
+                const canUseHtml2Pdf = typeof html2pdf !== 'undefined';
 
-                const exportStyles = document.createElement('style');
-                exportStyles.textContent = `
-                    .pdf-label {
-                        width: 90mm;
-                        height: 60mm;
-                        padding: 1.2mm 3.5mm 1.8mm 3.5mm;
-                        box-sizing: border-box;
-                        font-family: Tahoma, Arial, sans-serif;
-                        font-size: 9.0pt;
-                        line-height: 1.15;
-                        font-weight: 700;
-                        letter-spacing: -0.2px;
-                        page-break-after: always;
-                    }
-                    .pdf-label:last-child { page-break-after: auto; }
-                `;
-                wrapper.appendChild(exportStyles);
-
-                for (let i = 0; i < count; i++) {
-                    const label = document.createElement('div');
-                    label.className = 'pdf-label';
-                    label.innerHTML = buildLabelHtml(sttDau + i);
-                    wrapper.appendChild(label);
+                if (!JsPDFCtor && !canUseHtml2Pdf) {
+                    alert('Thiếu thư viện xuất PDF. Vui lòng kiểm tra mạng rồi tải lại trang.');
+                    return;
                 }
 
-                document.body.appendChild(wrapper);
-                try {
-                    await html2pdf().set({
-                        margin: 0,
-                        filename,
-                        image: { type: 'jpeg', quality: 0.75 },
-                        html2canvas: { scale: 0.9, useCORS: true, backgroundColor: '#ffffff', logging: false },
-                        pagebreak: { mode: ['css', 'legacy'] },
-                        jsPDF: { unit: 'mm', format: [90, 60], orientation: 'landscape' }
-                    }).from(wrapper).save();
-                } finally {
-                    if (wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
-                }
-            } catch (error) {
-                alert('Lỗi khi tạo PDF: ' + (error?.message || error));
-            }
-        }
+                clearTimeout(productSttLoadTimer);
+                productSttLoadTimer = null;
 
-        
-        // ==================== IMPORT DỮ LIỆU TỪ EXCEL ====================
-        /** Đọc tệp Excel, chuẩn hóa các cột và nhập thành phẩm vào Firestore. */
-        async function importExcel(input) {
-            if (!firebaseReady || !db) {
-                alert('Database chưa sẵn sàng. Vui lòng tải lại trang rồi thử lại.');
-                input.value = '';
-                return;
-            }
-            const file = input.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
+                await ensureCurrentProductCounterLoaded();
 
-                    if (!rows.length) {
-                        alert('File Excel trống!');
+                updateSttCuoi();
+
+                const sttDau = toNonNegativeInt(document.getElementById('sttDau').value, 0);
+                const count = toPositiveInt(document.getElementById('soLuongTem').value, 1);
+                const sttCuoi = sttDau + count - 1;
+                const lot = (document.getElementById('maBTP').value || 'LOT').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+                const filename = `Nhan_${lot}_${sttDau}-${sttCuoi}.pdf`;
+
+                try {
+                    if (JsPDFCtor) {
+                        await exportPdfFast(JsPDFCtor, filename, sttDau, count);
                         return;
                     }
 
-                    const normalizeHeaderKey = (value) => String(value || '')
-                        .normalize('NFD')
-                        .replace(/[\u0300-\u036f]/g, '')
-                        .toLowerCase()
-                        .replace(/[^a-z0-9]/g, '');
+                    // Phương án dự phòng chỉ được dùng khi jsPDF không khả dụng.
+                    const wrapper = document.createElement('div');
+                    wrapper.style.position = 'fixed';
+                    wrapper.style.left = '0';
+                    wrapper.style.top = '0';
+                    wrapper.style.background = '#fff';
+                    wrapper.style.opacity = '1';
+                    wrapper.style.pointerEvents = 'none';
+                    wrapper.style.zIndex = '-1';
 
-                    const headerRow = (rows[0] || []).map(normalizeHeaderKey);
-                    const sttHeaderIndex = headerRow.findIndex(h => ['stt', 'sothutu'].includes(h));
-                    const maSpHeaderIndex = headerRow.findIndex(h => ['masp', 'sku', 'masanpham'].includes(h));
-                    const tenTpHeaderIndex = headerRow.findIndex(h => ['tentp', 'tenthanhpham'].includes(h));
-                    const loaiHeaderIndex = headerRow.findIndex(h => ['loai', 'loaihang', 'loaithanhpham'].includes(h));
+                    const exportStyles = document.createElement('style');
+                    exportStyles.textContent = `
+                        .pdf-label {
+                            width: 90mm;
+                            height: 60mm;
+                            padding: 1.2mm 3.5mm 1.8mm 3.5mm;
+                            box-sizing: border-box;
+                            font-family: Tahoma, Arial, sans-serif;
+                            font-size: 9.0pt;
+                            line-height: 1.15;
+                            font-weight: 700;
+                            letter-spacing: -0.2px;
+                            page-break-after: always;
+                        }
+                        .pdf-label:last-child { page-break-after: auto; }
+                    `;
+                    wrapper.appendChild(exportStyles);
 
-                    const hasHeader = maSpHeaderIndex !== -1 || tenTpHeaderIndex !== -1 || loaiHeaderIndex !== -1;
-                    const startRow = hasHeader ? 1 : 0;
-                    const sttIndex = sttHeaderIndex !== -1 ? sttHeaderIndex : 0;
-                    const defaultMaSpIndex = rows[0] && rows[0].length >= 3 ? 1 : 0;
-                    const defaultTenTpIndex = rows[0] && rows[0].length >= 3 ? 2 : 1;
-                    const defaultLoaiIndex = rows[0] && rows[0].length >= 4 ? 3 : -1;
-                    const maSpIndex = maSpHeaderIndex !== -1 ? maSpHeaderIndex : defaultMaSpIndex;
-                    const tenTpIndex = tenTpHeaderIndex !== -1 ? tenTpHeaderIndex : defaultTenTpIndex;
-                    const loaiIndex = loaiHeaderIndex !== -1 ? loaiHeaderIndex : defaultLoaiIndex;
-
-                    const newProducts = [];
-                    for (let i = startRow; i < rows.length; i++) {
-                        const row = rows[i] || [];
-                        const maSP = String(row[maSpIndex] || '').trim();
-                        const tenTP = String(row[tenTpIndex] || '').trim();
-                        const loai = normalizeProductLoai(loaiIndex >= 0 ? row[loaiIndex] : '', tenTP);
-                        if (!maSP && !tenTP) continue;
-
-                        newProducts.push({
-                            stt: parseInt(row[sttIndex], 10) || (newProducts.length + 1),
-                            maSP,
-                            tenTP,
-                            loai,
-                            timestamp: new Date().toISOString()
-                        });
+                    for (let i = 0; i < count; i++) {
+                        const label = document.createElement('div');
+                        label.className = 'pdf-label';
+                        label.innerHTML = buildLabelHtml(sttDau + i);
+                        wrapper.appendChild(label);
                     }
 
-                    if (newProducts.length === 0) return alert("Không tìm thấy dữ liệu!");
-                    if (confirm(`Import ${newProducts.length} sản phẩm?`)) {
-                        const batch = db.batch();
-                        newProducts.forEach((p) => {
-                            const ref = db.collection("thanhpham").doc();
-                            batch.set(ref, p);
-                        });
-                        await batch.commit();
-                        alert(`✅ Import thành công!`);
+                    document.body.appendChild(wrapper);
+                    try {
+                        await html2pdf().set({
+                            margin: 0,
+                            filename,
+                            image: { type: 'jpeg', quality: 0.75 },
+                            html2canvas: { scale: 0.9, useCORS: true, backgroundColor: '#ffffff', logging: false },
+                            pagebreak: { mode: ['css', 'legacy'] },
+                            jsPDF: { unit: 'mm', format: [90, 60], orientation: 'landscape' }
+                        }).from(wrapper).save();
+                    } finally {
+                        if (wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
                     }
-                } catch (err) {
-                    alert("Lỗi: " + err.message);
-                } finally {
+                } catch (error) {
+                    alert('Lỗi khi tạo PDF: ' + (error?.message || error));
+                }
+            }
+
+            
+            // ==================== IMPORT DỮ LIỆU TỪ EXCEL ====================
+            /** Đọc tệp Excel, chuẩn hóa các cột và nhập thành phẩm vào Firestore. */
+            async function importExcel(input) {
+                if (!firebaseReady || !db) {
+                    alert('Database chưa sẵn sàng. Vui lòng tải lại trang rồi thử lại.');
                     input.value = '';
+                    return;
                 }
-            };
-            reader.readAsArrayBuffer(file);
-        }
+                const file = input.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
 
-        // ==================== THÊM THÀNH PHẨM TỪ FORM HIỆN TẠI ====================
-        /** Thêm thành phẩm đang nhập trên biểu mẫu chính vào danh sách. */
-        async function addThanhPhamFromForm() {
-            if (!verifyProductActionPassword()) return;
+                        if (!rows.length) {
+                            alert('File Excel trống!');
+                            return;
+                        }
 
-            if (!firebaseReady || !db) {
-                alert('Database chưa sẵn sàng. Vui lòng tải lại trang rồi thử lại.');
-                return;
-            }
+                        const normalizeHeaderKey = (value) => String(value || '')
+                            .normalize('NFD')
+                            .replace(/[\u0300-\u036f]/g, '')
+                            .toLowerCase()
+                            .replace(/[^a-z0-9]/g, '');
 
-            const maSP = String(document.getElementById('sku').value || '').trim();
-            const tenTP = String(document.getElementById('tenTP').value || '').trim();
-            const loai = normalizeProductLoai(document.getElementById('loaiHang')?.value || '', tenTP);
+                        const headerRow = (rows[0] || []).map(normalizeHeaderKey);
+                        const sttHeaderIndex = headerRow.findIndex(h => ['stt', 'sothutu'].includes(h));
+                        const maSpHeaderIndex = headerRow.findIndex(h => ['masp', 'sku', 'masanpham'].includes(h));
+                        const tenTpHeaderIndex = headerRow.findIndex(h => ['tentp', 'tenthanhpham'].includes(h));
+                        const loaiHeaderIndex = headerRow.findIndex(h => ['loai', 'loaihang', 'loaithanhpham'].includes(h));
 
-            if (!tenTP) {
-                alert('Vui lòng nhập Tên Thành Phẩm trước khi thêm!');
-                return;
-            }
+                        const hasHeader = maSpHeaderIndex !== -1 || tenTpHeaderIndex !== -1 || loaiHeaderIndex !== -1;
+                        const startRow = hasHeader ? 1 : 0;
+                        const sttIndex = sttHeaderIndex !== -1 ? sttHeaderIndex : 0;
+                        const defaultMaSpIndex = rows[0] && rows[0].length >= 3 ? 1 : 0;
+                        const defaultTenTpIndex = rows[0] && rows[0].length >= 3 ? 2 : 1;
+                        const defaultLoaiIndex = rows[0] && rows[0].length >= 4 ? 3 : -1;
+                        const maSpIndex = maSpHeaderIndex !== -1 ? maSpHeaderIndex : defaultMaSpIndex;
+                        const tenTpIndex = tenTpHeaderIndex !== -1 ? tenTpHeaderIndex : defaultTenTpIndex;
+                        const loaiIndex = loaiHeaderIndex !== -1 ? loaiHeaderIndex : defaultLoaiIndex;
 
-            try {
-                if (maSP) {
-                    const existed = await db.collection('thanhpham').where('maSP', '==', maSP).limit(1).get();
+                        const newProducts = [];
+                        for (let i = startRow; i < rows.length; i++) {
+                            const row = rows[i] || [];
+                            const maSP = String(row[maSpIndex] || '').trim();
+                            const tenTP = String(row[tenTpIndex] || '').trim();
+                            const loai = normalizeProductLoai(loaiIndex >= 0 ? row[loaiIndex] : '', tenTP);
+                            if (!maSP && !tenTP) continue;
 
-                    if (!existed.empty) {
-                        const doc = existed.docs[0];
-                        await db.collection('thanhpham').doc(doc.id).set({
-                            maSP,
-                            tenTP,
-                            loai,
-                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                        }, { merge: true });
-                        alert('✅ Đã cập nhật thành phẩm đã tồn tại trong danh sách!');
-                        return;
+                            newProducts.push({
+                                stt: parseInt(row[sttIndex], 10) || (newProducts.length + 1),
+                                maSP,
+                                tenTP,
+                                loai,
+                                timestamp: new Date().toISOString()
+                            });
+                        }
+
+                        if (newProducts.length === 0) return alert("Không tìm thấy dữ liệu!");
+                        if (confirm(`Import ${newProducts.length} sản phẩm?`)) {
+                            const batch = db.batch();
+                            newProducts.forEach((p) => {
+                                const ref = db.collection("thanhpham").doc();
+                                batch.set(ref, p);
+                            });
+                            await batch.commit();
+                            alert(`✅ Import thành công!`);
+                        }
+                    } catch (err) {
+                        alert("Lỗi: " + err.message);
+                    } finally {
+                        input.value = '';
                     }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+
+            // ==================== THÊM THÀNH PHẨM TỪ FORM HIỆN TẠI ====================
+            /** Thêm thành phẩm đang nhập trên biểu mẫu chính vào danh sách. */
+            async function addThanhPhamFromForm() {
+                if (!verifyProductActionPassword()) return;
+
+                if (!firebaseReady || !db) {
+                    alert('Database chưa sẵn sàng. Vui lòng tải lại trang rồi thử lại.');
+                    return;
                 }
 
-                const maxStt = products.reduce((max, p) => {
-                    const current = parseInt(p.stt, 10) || 0;
-                    return current > max ? current : max;
-                }, 0);
+                const maSP = String(document.getElementById('sku').value || '').trim();
+                const tenTP = String(document.getElementById('tenTP').value || '').trim();
+                const loai = normalizeProductLoai(document.getElementById('loaiHang')?.value || '', tenTP);
 
-                await db.collection('thanhpham').add({
-                    stt: maxStt + 1,
-                    maSP,
-                    tenTP,
-                    loai,
-                    timestamp: new Date().toISOString(),
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                if (!tenTP) {
+                    alert('Vui lòng nhập Tên Thành Phẩm trước khi thêm!');
+                    return;
+                }
 
-                alert('✅ Đã thêm thành phẩm vào danh sách!');
-            } catch (error) {
-                alert('Lỗi khi thêm thành phẩm: ' + error.message);
+                try {
+                    if (maSP) {
+                        const existed = await db.collection('thanhpham').where('maSP', '==', maSP).limit(1).get();
+
+                        if (!existed.empty) {
+                            const doc = existed.docs[0];
+                            await db.collection('thanhpham').doc(doc.id).set({
+                                maSP,
+                                tenTP,
+                                loai,
+                                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                            }, { merge: true });
+                            alert('✅ Đã cập nhật thành phẩm đã tồn tại trong danh sách!');
+                            return;
+                        }
+                    }
+
+                    const maxStt = products.reduce((max, p) => {
+                        const current = parseInt(p.stt, 10) || 0;
+                        return current > max ? current : max;
+                    }, 0);
+
+                    await db.collection('thanhpham').add({
+                        stt: maxStt + 1,
+                        maSP,
+                        tenTP,
+                        loai,
+                        timestamp: new Date().toISOString(),
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    alert('✅ Đã thêm thành phẩm vào danh sách!');
+                } catch (error) {
+                    alert('Lỗi khi thêm thành phẩm: ' + error.message);
+                }
             }
-        }
 
-        /** Thêm hoặc cập nhật thành phẩm từ biểu mẫu trong cửa sổ danh sách. */
-        async function addThanhPhamManual() {
-            if (!verifyProductActionPassword()) return;
+            /** Thêm hoặc cập nhật thành phẩm từ biểu mẫu trong cửa sổ danh sách. */
+            async function addThanhPhamManual() {
+                if (!verifyProductActionPassword()) return;
 
-            if (!firebaseReady || !db) {
-                alert('Database chưa sẵn sàng. Vui lòng tải lại trang rồi thử lại.');
-                return;
-            }
+                if (!firebaseReady || !db) {
+                    alert('Database chưa sẵn sàng. Vui lòng tải lại trang rồi thử lại.');
+                    return;
+                }
 
-            const stt = parseInt(document.getElementById('addStt').value, 10);
-            const maSP = String(document.getElementById('addSku').value || '').trim();
-            const tenTP = String(document.getElementById('addTenTP').value || '').trim();
-            const loaiInput = String(document.getElementById('addLoai').value || '').trim();
-            const loai = normalizeProductLoai(loaiInput, tenTP);
+                const stt = parseInt(document.getElementById('addStt').value, 10);
+                const maSP = String(document.getElementById('addSku').value || '').trim();
+                const tenTP = String(document.getElementById('addTenTP').value || '').trim();
+                const loaiInput = String(document.getElementById('addLoai').value || '').trim();
+                const loai = normalizeProductLoai(loaiInput, tenTP);
 
-            if (!Number.isInteger(stt) || stt <= 0) {
-                alert('Vui lòng nhập STT hợp lệ (> 0)!');
-                return;
-            }
-            if (!tenTP) {
-                alert('Vui lòng nhập tên TP!');
-                return;
-            }
+                if (!Number.isInteger(stt) || stt <= 0) {
+                    alert('Vui lòng nhập STT hợp lệ (> 0)!');
+                    return;
+                }
+                if (!tenTP) {
+                    alert('Vui lòng nhập tên TP!');
+                    return;
+                }
 
-            try {
-                if (maSP) {
-                    const existed = await db.collection('thanhpham').where('maSP', '==', maSP).limit(1).get();
-                    if (!existed.empty) {
-                        const doc = existed.docs[0];
-                        await db.collection('thanhpham').doc(doc.id).set({
-                            stt,
-                            maSP,
-                            tenTP,
-                            loai,
-                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                        }, { merge: true });
-                        alert('✅ SKU đã tồn tại, đã cập nhật STT và Tên TP!');
+                try {
+                    if (maSP) {
+                        const existed = await db.collection('thanhpham').where('maSP', '==', maSP).limit(1).get();
+                        if (!existed.empty) {
+                            const doc = existed.docs[0];
+                            await db.collection('thanhpham').doc(doc.id).set({
+                                stt,
+                                maSP,
+                                tenTP,
+                                loai,
+                                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                            }, { merge: true });
+                            alert('✅ SKU đã tồn tại, đã cập nhật STT và Tên TP!');
+                        } else {
+                            await db.collection('thanhpham').add({
+                                stt,
+                                maSP,
+                                tenTP,
+                                loai,
+                                timestamp: new Date().toISOString(),
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                            alert('✅ Đã thêm thành phẩm vào danh sách!');
+                        }
                     } else {
                         await db.collection('thanhpham').add({
                             stt,
@@ -1516,459 +1528,448 @@
                         });
                         alert('✅ Đã thêm thành phẩm vào danh sách!');
                     }
-                } else {
-                    await db.collection('thanhpham').add({
-                        stt,
-                        maSP,
-                        tenTP,
-                        loai,
-                        timestamp: new Date().toISOString(),
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    alert('✅ Đã thêm thành phẩm vào danh sách!');
+
+                    document.getElementById('addStt').value = '';
+                    document.getElementById('addSku').value = '';
+                    document.getElementById('addTenTP').value = '';
+                    document.getElementById('addLoai').value = '';
+                } catch (error) {
+                    alert('Lỗi khi thêm thành phẩm: ' + error.message);
                 }
-
-                document.getElementById('addStt').value = '';
-                document.getElementById('addSku').value = '';
-                document.getElementById('addTenTP').value = '';
-                document.getElementById('addLoai').value = '';
-            } catch (error) {
-                alert('Lỗi khi thêm thành phẩm: ' + error.message);
             }
-        }
 
-        // ==================== HIỂN THỊ DANH SÁCH SẢN PHẨM ====================
-        /** Dựng bảng thành phẩm và gắn hành vi chọn cho từng dòng. */
-        function populateGrid() {
-            const tbody = document.getElementById('gridBody');
-            tbody.innerHTML = '';
-            if (products.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-gray-500">Chưa có dữ liệu.</td></tr>`;
-                return;
-            }
-            products.forEach((prod, i) => {
-                const tr = document.createElement('tr');
-                tr.className = 'cursor-pointer border-b hover:bg-gray-50';
-                tr.innerHTML = `<td class="px-4 py-3">${prod.stt || ''}</td>
-                                <td class="px-4 py-3 font-mono">${prod.maSP || ''}</td>
-                                <td class="px-4 py-3">${prod.tenTP || ''}</td>
-                                <td class="px-4 py-3 text-center">
-                                    <button onclick="deleteThanhPham('${prod.id || ''}', event)" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg text-xs font-medium">
-                                        <i class="fas fa-trash"></i> Xóa
-                                    </button>
-                                </td>`;
-                tr.onclick = () => selectRow(i, tr);
-                tbody.appendChild(tr);
-            });
-        }
-
-        /** Xác thực rồi xóa một thành phẩm khỏi Firestore. */
-        async function deleteThanhPham(id, event) {
-            event.stopPropagation();
-
-            if (!verifyProductActionPassword()) return;
-
-            if (!id) {
-                alert('Không tìm thấy mã bản ghi để xóa!');
-                return;
-            }
-            if (!firebaseReady || !db) {
-                alert('Database chưa sẵn sàng. Vui lòng tải lại trang rồi thử lại.');
-                return;
-            }
-            if (!confirm('Bạn có chắc muốn xóa thành phẩm này?')) return;
-
-            try {
-                await db.collection('thanhpham').doc(id).delete();
-                alert('✅ Đã xóa thành phẩm!');
-            } catch (error) {
-                alert('Lỗi khi xóa thành phẩm: ' + error.message);
-            }
-        }
-
-        // ==================== CHỌN DÒNG SẢN PHẨM ====================
-        /** Điền thông tin thành phẩm được chọn vào biểu mẫu chính. */
-        function applySelectedProduct(p) {
-            if (!p) return;
-
-            document.getElementById('sku').value = p.maSP || '';
-            document.getElementById('tenTP').value = p.tenTP || '';
-
-            const loaiHang = document.getElementById('loaiHang');
-            if (loaiHang) {
-                loaiHang.value = p.loai === 'Ri' ? 'R' : (p.loai === 'Đô' ? 'D' : '');
-                if (loaiHang.value) {
-                    handleLotRuleChange();
+            // ==================== HIỂN THỊ DANH SÁCH SẢN PHẨM ====================
+            /** Dựng bảng thành phẩm và gắn hành vi chọn cho từng dòng. */
+            function populateGrid() {
+                const tbody = document.getElementById('gridBody');
+                tbody.innerHTML = '';
+                if (products.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-gray-500">Chưa có dữ liệu.</td></tr>`;
                     return;
                 }
+                products.forEach((prod, i) => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'cursor-pointer border-b hover:bg-gray-50';
+                    tr.innerHTML = `<td class="px-4 py-3">${prod.stt || ''}</td>
+                                    <td class="px-4 py-3 font-mono">${prod.maSP || ''}</td>
+                                    <td class="px-4 py-3">${prod.tenTP || ''}</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <button onclick="deleteThanhPham('${prod.id || ''}', event)" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg text-xs font-medium">
+                                            <i class="fas fa-trash"></i> Xóa
+                                        </button>
+                                    </td>`;
+                    tr.onclick = () => selectRow(i, tr);
+                    tbody.appendChild(tr);
+                });
             }
 
-            updatePreview();
-        }
+            /** Xác thực rồi xóa một thành phẩm khỏi Firestore. */
+            async function deleteThanhPham(id, event) {
+                event.stopPropagation();
 
-        /** Đánh dấu dòng được chọn, áp dụng dữ liệu và đóng cửa sổ. */
-        function selectRow(index, row) {
-            document.querySelectorAll('#dataGrid tr').forEach(r => r.classList.remove('selected'));
-            row.classList.add('selected');
-            selectedIndex = index;
-            const p = products[index] || null;
-            applySelectedProduct(p);
-            closeProductModal();
-        }
+                if (!verifyProductActionPassword()) return;
 
-        // ==================== LOAD DỮ LIỆU TỪ BẢNG ====================
-        /** Nạp lại thành phẩm đang chọn từ bảng vào biểu mẫu chính. */
-        function loadFromGrid() {
-            if (selectedIndex < 0) return;
+                if (!id) {
+                    alert('Không tìm thấy mã bản ghi để xóa!');
+                    return;
+                }
+                if (!firebaseReady || !db) {
+                    alert('Database chưa sẵn sàng. Vui lòng tải lại trang rồi thử lại.');
+                    return;
+                }
+                if (!confirm('Bạn có chắc muốn xóa thành phẩm này?')) return;
 
-            const p = products[selectedIndex] || null;
-            if (!p) return;
-
-            applySelectedProduct(p);
-
-            closeProductModal();
-        }
-
-        // ==================== TÌM KIẾM TRONG DANH SÁCH ====================
-        /** Ẩn các dòng thành phẩm không khớp từ khóa tìm kiếm. */
-        function filterGrid() {
-            const term = document.getElementById('searchInput').value.toLowerCase();
-            document.querySelectorAll('#dataGrid tr').forEach(row => {
-                row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
-            });
-        }
-
-        // ==================== ĐỒNG BỘ LOT THEO LOẠI + NHÀ SX + VÙNG ====================
-        let isSyncingLotFields = false;
-
-        /** Chuẩn hóa mã loại hàng về D, R hoặc chuỗi rỗng. */
-        function normalizeLoaiHangCode(value) {
-            const code = String(value || '').trim().toUpperCase();
-            if (code === 'R') return 'R';
-            if (code === 'D') return 'D';
-            return '';
-        }
-
-        /** Chuẩn hóa văn bản để so sánh không phân biệt dấu và chữ hoa. */
-        function normalizeTextForCompare(value) {
-            return String(value || '')
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .replace(/đ/g, 'd')
-                .replace(/Đ/g, 'D')
-                .toLowerCase();
-        }
-
-        /** Suy ra loại Đô hoặc Ri từ tên thành phẩm. */
-        function inferLoaiFromTenTP(tenTP) {
-            const normalized = normalizeTextForCompare(tenTP).replace(/[^a-z0-9]/g, '');
-            if (normalized.includes('monthong')) return 'Đô';
-            if (normalized.includes('ri6') || normalized.includes('sauriengri6')) return 'Ri';
-            return '';
-        }
-
-        /** Chuẩn hóa tên loại thành phẩm từ dữ liệu nhập hoặc tên sản phẩm. */
-        function normalizeProductLoai(loaiValue, tenTP = '') {
-            const normalizedLoai = normalizeTextForCompare(loaiValue).replace(/[^a-z0-9]/g, '');
-
-            if (['d', 'do', 'doa', 'dona', 'monthong'].includes(normalizedLoai)) return 'Đô';
-            if (['r', 'ri', 'ri6'].includes(normalizedLoai)) return 'Ri';
-
-            return inferLoaiFromTenTP(tenTP);
-        }
-
-        /** Chuẩn hóa mã nhà sản xuất thành đúng ba chữ số. */
-        function normalizeNhaSXCode(value) {
-            const digits = String(value || '').replace(/\D/g, '');
-            return digits.padStart(3, '0').slice(-3);
-        }
-
-        /** Trả về mã vùng hợp lệ dùng trong mã lot. */
-        function getRegionCodeForLot(regionValue) {
-            const code = String(regionValue || 'MT').trim().toUpperCase();
-            if (code === 'MT' || code === 'MD' || code === 'TN') {
-                return code;
-            }
-            return 'MT';
-        }
-
-        /** Tạo phần mã ngày đóng gói theo định dạng DDMMY. */
-        function getPackagingDateCode(dateValue = null) {
-            const dateInputValue = dateValue || document.getElementById('ngayDG')?.value;
-            let dateObj = null;
-
-            if (dateInputValue) {
-                const [year, month, day] = String(dateInputValue).split('-').map(Number);
-                if (Number.isInteger(year) && Number.isInteger(month) && Number.isInteger(day)) {
-                    dateObj = new Date(Date.UTC(year, month - 1, day));
+                try {
+                    await db.collection('thanhpham').doc(id).delete();
+                    alert('✅ Đã xóa thành phẩm!');
+                } catch (error) {
+                    alert('Lỗi khi xóa thành phẩm: ' + error.message);
                 }
             }
 
-            if (!dateObj) {
-                dateObj = new Date();
+            // ==================== CHỌN DÒNG SẢN PHẨM ====================
+            /** Điền thông tin thành phẩm được chọn vào biểu mẫu chính. */
+            function applySelectedProduct(p) {
+                if (!p) return;
+
+                document.getElementById('sku').value = p.maSP || '';
+                document.getElementById('tenTP').value = p.tenTP || '';
+
+                const loaiHang = document.getElementById('loaiHang');
+                if (loaiHang) {
+                    loaiHang.value = p.loai === 'Ri' ? 'R' : (p.loai === 'Đô' ? 'D' : '');
+                    if (loaiHang.value) {
+                        handleLotRuleChange();
+                        return;
+                    }
+                }
+
+                updatePreview();
             }
 
-            const day = String(dateObj.getUTCDate()).padStart(2, '0');
-            const month = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
-            const yearLastDigit = String(dateObj.getUTCFullYear()).slice(-1);
-            return `${day}${month}${yearLastDigit}`;
-        }
-
-        /** Phân tích mã lot thành loại, nhà sản xuất, vùng và phần đuôi. */
-        function parseLotCode(lotValue) {
-            const cleaned = String(lotValue || '').trim().toUpperCase();
-            const match = cleaned.match(/^([A-Z])(\d{3})([A-Z]{2})(.*)$/);
-            if (!match) return null;
-            return {
-                loaiCode: match[1],
-                nhaSXCode: match[2],
-                regionCode: match[3],
-                tail: match[4] || ''
-            };
-        }
-
-        /** Đồng bộ các ô loại hàng, nhà sản xuất và vùng từ mã lot. */
-        function syncControlsFromLot() {
-            const lotInput = document.getElementById('maBTP');
-            const loaiHang = document.getElementById('loaiHang');
-            const nhaSX = document.getElementById('nhaSX');
-            const regionSelect = document.getElementById('vungNguyenLieu');
-            if (!lotInput || !loaiHang || !nhaSX || !regionSelect) return;
-
-            const parsed = parseLotCode(lotInput.value);
-            if (!parsed) return;
-
-            isSyncingLotFields = true;
-            loaiHang.value = normalizeLoaiHangCode(parsed.loaiCode);
-            nhaSX.value = parsed.nhaSXCode;
-
-            const availableRegionValues = new Set(Array.from(regionSelect.options).map(option => option.value));
-            if (availableRegionValues.has(parsed.regionCode)) {
-                regionSelect.value = parsed.regionCode;
-            } else if (parsed.regionCode === 'DN' && availableRegionValues.has('LK')) {
-                regionSelect.value = 'DN';
-            }
-            isSyncingLotFields = false;
-        }
-
-        /** Tạo lại mã lot theo loại hàng, nhà sản xuất, vùng và ngày đóng gói. */
-        function updateLotByRules() {
-            if (isSyncingLotFields) return;
-
-            const lotInput = document.getElementById('maBTP');
-            const loaiHang = document.getElementById('loaiHang');
-            const nhaSX = document.getElementById('nhaSX');
-            const regionSelect = document.getElementById('vungNguyenLieu');
-            if (!lotInput || !loaiHang || !nhaSX || !regionSelect) return;
-
-            const parsed = parseLotCode(lotInput.value);
-            const loaiCode = normalizeLoaiHangCode(loaiHang.value);
-            if (!loaiCode) {
-                // Sản phẩm không có loại, ví dụ xoài, sẽ giữ nguyên lot người dùng nhập.
-                return;
-            }
-            const nhaSXCode = normalizeNhaSXCode(nhaSX.value);
-            const regionCode = getRegionCodeForLot(regionSelect.value);
-            const dateCode = getPackagingDateCode();
-            const existingDateCodeMatch = parsed && parsed.tail ? parsed.tail.match(/^(\d{5})(.*)$/) : null;
-            const tail = existingDateCodeMatch ? existingDateCodeMatch[2] : (parsed ? parsed.tail : '');
-
-            const nextLot = `${loaiCode}${nhaSXCode}${regionCode}${dateCode}${tail}`;
-            if (lotInput.value !== nextLot) {
-                lotInput.value = nextLot;
-            }
-        }
-
-        /** Xử lý khi người dùng sửa mã lot thủ công. */
-        function handleLotInput() {
-            if (!isSyncingLotFields) {
-                syncControlsFromLot();
-            }
-            updatePreview();
-        }
-
-        /** Cập nhật mã lot khi loại hàng hoặc quy tắc liên quan thay đổi. */
-        function handleLotRuleChange() {
-            updateLotByRules();
-            updatePreview();
-        }
-
-        /** Chỉ nhận chữ số cho mã nhà sản xuất rồi cập nhật mã lot. */
-        function handleNhaSXInput() {
-            const nhaSX = document.getElementById('nhaSX');
-            if (!nhaSX) return;
-
-            const digitsOnly = String(nhaSX.value || '').replace(/\D/g, '').slice(0, 3);
-            if (nhaSX.value !== digitsOnly) {
-                nhaSX.value = digitsOnly;
+            /** Đánh dấu dòng được chọn, áp dụng dữ liệu và đóng cửa sổ. */
+            function selectRow(index, row) {
+                document.querySelectorAll('#dataGrid tr').forEach(r => r.classList.remove('selected'));
+                row.classList.add('selected');
+                selectedIndex = index;
+                const p = products[index] || null;
+                applySelectedProduct(p);
+                closeProductModal();
             }
 
-            handleLotRuleChange();
-        }
+            // ==================== LOAD DỮ LIỆU TỪ BẢNG ====================
+            /** Nạp lại thành phẩm đang chọn từ bảng vào biểu mẫu chính. */
+            function loadFromGrid() {
+                if (selectedIndex < 0) return;
 
-        /** Cập nhật mã lot và bản xem trước khi đổi vùng nguyên liệu. */
-        function handleRegionChange() {
-            updateLotByRules();
-            updatePreview();
-        }
+                const p = products[selectedIndex] || null;
+                if (!p) return;
 
-        // ==================== XÁC ĐỊNH VÙNG NGUYÊN LIỆU TỪ LOT ====================
-        /** Nhận diện mã vùng nguyên liệu xuất hiện trong chuỗi lot. */
-        function getRegionFromLot(lot) {
-            if (!lot) return null;
-            const upperLot = lot.toUpperCase();
-            if (upperLot.includes('TN') || upperLot.includes('TAY NGUYEN') || upperLot.includes('TÂY NGUYÊN')) return 'TN';
-            if (upperLot.includes('MD') || upperLot.includes('MIEN DONG')) return 'MD';
-            if (upperLot.includes('MT') || upperLot.includes('MIEN TAY')) return 'MT';
-            return null;
-        }
+                applySelectedProduct(p);
 
-        /** Tạo HTML đầy đủ dùng cho bản xem trước và phương án PDF dự phòng. */
-        function buildLabelHtml(sttValue = '5200', snapshotData = null) {
-            const data = snapshotData || getLabelSnapshotData();
-            const sku = data.sku || '';
-            const hasSku = sku.length > 0;
-            const maBTP = data.maBTP || 'D009MT15066-02-0K';
-            const tenTP = data.tenTP || 'TP CẤP ĐÔNG SẦU RIÊNG...';
-            const toSanXuat = data.toSanXuat || 'Tèo';
-            const quyCach = data.quyCach || '20kg';
-            const vungFull = data.vungFull || 'Miền Tây';
-            const ngaySX = data.ngaySX || '22/06/2026';
-            const ngayDG = data.ngayDG || ngaySX;
+                closeProductModal();
+            }
 
-            return `
-                <div style="font-family: Tahoma, Arial, sans-serif; font-size: 9.0pt; font-weight: 700; line-height: 1.15; padding: 3px 5px; height: 100%; letter-spacing: -0.2px;">
-                    <div style="display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 3px; font-size: 7.8pt;">
-                        <div>${hasSku ? `Mã SKU: ${sku}` : ''}</div>
-                        <div>Lot: ${maBTP}</div>
-                    </div>
-                    <div style="font-size: 12.8pt; font-weight: 800; text-align: center; margin: 4px 0 6px; line-height: 1.05;">
-                        ${tenTP}
-                    </div>
-                    <hr style="border: 1px solid #000; margin: 3px 0 5px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-                        <div><strong>Quy Cách /SPEC</strong><br>Thùng/túi: ${quyCach}</div>
-                        <div style="text-align: right;"><strong>KHỐI LƯỢNG /WEIGHT</strong><br>${quyCach}</div>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-                        <div><strong>TỔ/NHÓM</strong><br>${toSanXuat}</div>
-                        <div style="text-align: right;">
-                            <strong>STT/INDEX</strong><br>
-                            <span style="font-size: 15.8pt; font-weight: 800;">${sttValue}</span>
+            // ==================== TÌM KIẾM TRONG DANH SÁCH ====================
+            /** Ẩn các dòng thành phẩm không khớp từ khóa tìm kiếm. */
+            function filterGrid() {
+                const term = document.getElementById('searchInput').value.toLowerCase();
+                document.querySelectorAll('#dataGrid tr').forEach(row => {
+                    row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
+                });
+            }
+
+            // ==================== ĐỒNG BỘ LOT THEO LOẠI + NHÀ SX + VÙNG ====================
+            let isSyncingLotFields = false;
+
+            /** Chuẩn hóa mã loại hàng về D, R hoặc chuỗi rỗng. */
+            function normalizeLoaiHangCode(value) {
+                const code = String(value || '').trim().toUpperCase();
+                if (code === 'R') return 'R';
+                if (code === 'D') return 'D';
+                return '';
+            }
+
+            /** Chuẩn hóa văn bản để so sánh không phân biệt dấu và chữ hoa. */
+            function normalizeTextForCompare(value) {
+                return String(value || '')
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/đ/g, 'd')
+                    .replace(/Đ/g, 'D')
+                    .toLowerCase();
+            }
+
+            /** Suy ra loại Đô hoặc Ri từ tên thành phẩm. */
+            function inferLoaiFromTenTP(tenTP) {
+                const normalized = normalizeTextForCompare(tenTP).replace(/[^a-z0-9]/g, '');
+                if (normalized.includes('monthong')) return 'Đô';
+                if (normalized.includes('ri6') || normalized.includes('sauriengri6')) return 'Ri';
+                return '';
+            }
+
+            /** Chuẩn hóa tên loại thành phẩm từ dữ liệu nhập hoặc tên sản phẩm. */
+            function normalizeProductLoai(loaiValue, tenTP = '') {
+                const normalizedLoai = normalizeTextForCompare(loaiValue).replace(/[^a-z0-9]/g, '');
+
+                if (['d', 'do', 'doa', 'dona', 'monthong'].includes(normalizedLoai)) return 'Đô';
+                if (['r', 'ri', 'ri6'].includes(normalizedLoai)) return 'Ri';
+
+                return inferLoaiFromTenTP(tenTP);
+            }
+
+            /** Chuẩn hóa mã nhà sản xuất thành đúng ba chữ số. */
+            function normalizeNhaSXCode(value) {
+                const digits = String(value || '').replace(/\D/g, '');
+                return digits.padStart(3, '0').slice(-3);
+            }
+
+            /** Trả về mã vùng hợp lệ dùng trong mã lot. */
+            function getRegionCodeForLot(regionValue) {
+                const code = String(regionValue || 'MT').trim().toUpperCase();
+                if (code === 'MT' || code === 'MD' || code === 'TN') {
+                    return code;
+                }
+                return 'MT';
+            }
+
+            /** Tạo phần mã ngày đóng gói theo định dạng DDMMY. */
+            function getPackagingDateCode(dateValue = null) {
+                const dateInputValue = dateValue || document.getElementById('ngayDG')?.value;
+                let dateObj = null;
+
+                if (dateInputValue) {
+                    const [year, month, day] = String(dateInputValue).split('-').map(Number);
+                    if (Number.isInteger(year) && Number.isInteger(month) && Number.isInteger(day)) {
+                        dateObj = new Date(Date.UTC(year, month - 1, day));
+                    }
+                }
+
+                if (!dateObj) {
+                    dateObj = new Date();
+                }
+
+                const day = String(dateObj.getUTCDate()).padStart(2, '0');
+                const month = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+                const yearLastDigit = String(dateObj.getUTCFullYear()).slice(-1);
+                return `${day}${month}${yearLastDigit}`;
+            }
+
+            /** Phân tích mã lot thành loại, nhà sản xuất, vùng và phần đuôi. */
+            function parseLotCode(lotValue) {
+                const cleaned = String(lotValue || '').trim().toUpperCase();
+                const match = cleaned.match(/^([A-Z])(\d{3})([A-Z]{2})(.*)$/);
+                if (!match) return null;
+                return {
+                    loaiCode: match[1],
+                    nhaSXCode: match[2],
+                    regionCode: match[3],
+                    tail: match[4] || ''
+                };
+            }
+
+            /** Đồng bộ các ô loại hàng, nhà sản xuất và vùng từ mã lot. */
+            function syncControlsFromLot() {
+                const lotInput = document.getElementById('maBTP');
+                const loaiHang = document.getElementById('loaiHang');
+                const nhaSX = document.getElementById('nhaSX');
+                const regionSelect = document.getElementById('vungNguyenLieu');
+                if (!lotInput || !loaiHang || !nhaSX || !regionSelect) return;
+
+                const parsed = parseLotCode(lotInput.value);
+                if (!parsed) return;
+
+                isSyncingLotFields = true;
+                loaiHang.value = normalizeLoaiHangCode(parsed.loaiCode);
+                nhaSX.value = parsed.nhaSXCode;
+
+                const availableRegionValues = new Set(Array.from(regionSelect.options).map(option => option.value));
+                if (availableRegionValues.has(parsed.regionCode)) {
+                    regionSelect.value = parsed.regionCode;
+                } else if (parsed.regionCode === 'DN' && availableRegionValues.has('LK')) {
+                    regionSelect.value = 'DN';
+                }
+                isSyncingLotFields = false;
+            }
+
+            /** Tạo lại mã lot theo loại hàng, nhà sản xuất, vùng và ngày đóng gói. */
+            function updateLotByRules() {
+                if (isSyncingLotFields) return;
+
+                const lotInput = document.getElementById('maBTP');
+                const loaiHang = document.getElementById('loaiHang');
+                const nhaSX = document.getElementById('nhaSX');
+                const regionSelect = document.getElementById('vungNguyenLieu');
+                if (!lotInput || !loaiHang || !nhaSX || !regionSelect) return;
+
+                const parsed = parseLotCode(lotInput.value);
+                const loaiCode = normalizeLoaiHangCode(loaiHang.value);
+                if (!loaiCode) {
+                    // Sản phẩm không có loại, ví dụ xoài, sẽ giữ nguyên lot người dùng nhập.
+                    return;
+                }
+                const nhaSXCode = normalizeNhaSXCode(nhaSX.value);
+                const regionCode = getRegionCodeForLot(regionSelect.value);
+                const dateCode = getPackagingDateCode();
+                const existingDateCodeMatch = parsed && parsed.tail ? parsed.tail.match(/^(\d{5})(.*)$/) : null;
+                const tail = existingDateCodeMatch ? existingDateCodeMatch[2] : (parsed ? parsed.tail : '');
+
+                const nextLot = `${loaiCode}${nhaSXCode}${regionCode}${dateCode}${tail}`;
+                if (lotInput.value !== nextLot) {
+                    lotInput.value = nextLot;
+                }
+            }
+
+            /** Xử lý khi người dùng sửa mã lot thủ công. */
+            function handleLotInput() {
+                if (!isSyncingLotFields) {
+                    syncControlsFromLot();
+                }
+                updatePreview();
+            }
+
+            /** Cập nhật mã lot khi loại hàng hoặc quy tắc liên quan thay đổi. */
+            function handleLotRuleChange() {
+                updateLotByRules();
+                updatePreview();
+            }
+
+            /** Chỉ nhận chữ số cho mã nhà sản xuất rồi cập nhật mã lot. */
+            function handleNhaSXInput() {
+                const nhaSX = document.getElementById('nhaSX');
+                if (!nhaSX) return;
+
+                const digitsOnly = String(nhaSX.value || '').replace(/\D/g, '').slice(0, 3);
+                if (nhaSX.value !== digitsOnly) {
+                    nhaSX.value = digitsOnly;
+                }
+
+                handleLotRuleChange();
+            }
+
+            /** Cập nhật mã lot và bản xem trước khi đổi vùng nguyên liệu. */
+            function handleRegionChange() {
+                updateLotByRules();
+                updatePreview();
+            }
+
+            // ==================== XÁC ĐỊNH VÙNG NGUYÊN LIỆU TỪ LOT ====================
+            /** Nhận diện mã vùng nguyên liệu xuất hiện trong chuỗi lot. */
+            function getRegionFromLot(lot) {
+                if (!lot) return null;
+                const upperLot = lot.toUpperCase();
+                if (upperLot.includes('TN') || upperLot.includes('TAY NGUYEN') || upperLot.includes('TÂY NGUYÊN')) return 'TN';
+                if (upperLot.includes('MD') || upperLot.includes('MIEN DONG')) return 'MD';
+                if (upperLot.includes('MT') || upperLot.includes('MIEN TAY')) return 'MT';
+                return null;
+            }
+
+            /** Tạo HTML đầy đủ dùng cho bản xem trước và phương án PDF dự phòng. */
+            function buildLabelHtml(sttValue = '5200', snapshotData = null) {
+                const data = snapshotData || getLabelSnapshotData();
+                const sku = data.sku || '';
+                const hasSku = sku.length > 0;
+                const maBTP = data.maBTP || 'D009MT15066-02-0K';
+                const tenTP = data.tenTP || 'TP CẤP ĐÔNG SẦU RIÊNG...';
+                const toSanXuat = data.toSanXuat || 'Tèo';
+                const quyCach = data.quyCach || '20kg';
+                const vungFull = data.vungFull || 'Miền Tây';
+                const ngaySX = data.ngaySX || '22/06/2026';
+                const ngayDG = data.ngayDG || ngaySX;
+
+                return `
+                    <div style="font-family: Tahoma, Arial, sans-serif; font-size: 9.0pt; font-weight: 700; line-height: 1.15; padding: 3px 5px; height: 100%; letter-spacing: -0.2px;">
+                        <div style="display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 3px; font-size: 7.8pt;">
+                            <div>${hasSku ? `Mã SKU: ${sku}` : ''}</div>
+                            <div>Lot: ${maBTP}</div>
+                        </div>
+                        <div style="font-size: 12.8pt; font-weight: 800; text-align: center; margin: 4px 0 6px; line-height: 1.05;">
+                            ${tenTP}
+                        </div>
+                        <hr style="border: 1px solid #000; margin: 3px 0 5px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                            <div><strong>Quy Cách /SPEC</strong><br>Thùng/túi: ${quyCach}</div>
+                            <div style="text-align: right;"><strong>KHỐI LƯỢNG /WEIGHT</strong><br>${quyCach}</div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                            <div><strong>TỔ/NHÓM</strong><br>${toSanXuat}</div>
+                            <div style="text-align: right;">
+                                <strong>STT/INDEX</strong><br>
+                                <span style="font-size: 15.8pt; font-weight: 800;">${sttValue}</span>
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 3px; font-weight: 700;"><strong>VÙNG NGUYÊN LIỆU</strong><br>${vungFull}</div>
+                        <div style="display: flex; justify-content: space-between; font-size: 9.0pt; margin-top: 5px;">
+                            <div>Ngày SX: ${ngaySX}</div>
+                            <div>Ngày ĐG: ${ngayDG}</div>
                         </div>
                     </div>
-                    <div style="margin-bottom: 3px; font-weight: 700;"><strong>VÙNG NGUYÊN LIỆU</strong><br>${vungFull}</div>
-                    <div style="display: flex; justify-content: space-between; font-size: 9.0pt; margin-top: 5px;">
-                        <div>Ngày SX: ${ngaySX}</div>
-                        <div>Ngày ĐG: ${ngayDG}</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        /** Tạo HTML gọn dùng riêng cho tài liệu gửi đến máy in. */
-        function buildLabelHtmlCompact(sttValue = '5200', snapshotData = null) {
-            const data = snapshotData || getLabelSnapshotData();
-            const sku = data.sku || '';
-            const hasSku = sku.length > 0;
-            const maBTP = data.maBTP || 'D009MT15066-02-0K';
-            const tenTP = data.tenTP || 'TP CẤP ĐÔNG SẦU RIÊNG...';
-            const toSanXuat = data.toSanXuat || 'Tèo';
-            const quyCach = data.quyCach || '20kg';
-            const vungFull = data.vungFull || 'Miền Tây';
-            const ngaySX = data.ngaySX || '22/06/2026';
-            const ngayDG = data.ngayDG || ngaySX;
-
-            return `
-                <div class="lbl-inner">
-                    <div class="lbl-row lbl-top">
-                        <div>${hasSku ? `Mã SKU: ${sku}` : ''}</div>
-                        <div>Lot: ${maBTP}</div>
-                    </div>
-                    <div class="lbl-name">${tenTP}</div>
-                    <hr class="lbl-rule">
-                    <div class="lbl-row">
-                        <div><strong>Quy Cách /SPEC</strong><br>Thùng/túi: ${quyCach}</div>
-                        <div class="lbl-right"><strong>KHỐI LƯỢNG /WEIGHT</strong><br>${quyCach}</div>
-                    </div>
-                    <div class="lbl-row">
-                        <div><strong>TỔ/NHÓM</strong><br>${toSanXuat}</div>
-                        <div class="lbl-right"><strong>STT/INDEX</strong><br><span class="lbl-index">${sttValue}</span></div>
-                    </div>
-                    <div class="lbl-region"><strong>VÙNG NGUYÊN LIỆU</strong><br>${vungFull}</div>
-                    <div class="lbl-date">
-                        <div>Ngày SX: ${ngaySX}</div>
-                        <div>Ngày ĐG: ${ngayDG}</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // ==================== CẬP NHẬT XEM TRƯỚC NHÃN ====================
-        /** Cập nhật nhãn xem trước và lên lịch tải bộ đếm STT. */
-        function updatePreview() {
-            const preview = document.getElementById('previewLabel');
-            if (preview) {
-                preview.innerHTML = buildLabelHtml();
+                `;
             }
-            scheduleLoadProductSTT();
-        }
 
-        // ==================== TÍNH STT CUỐI ====================
-        /** Tính STT cuối từ STT đầu và số lượng tem. */
-        function updateSttCuoi() {
-            const sttDau = toNonNegativeInt(document.getElementById('sttDau').value, 0);
-            const soLuong = parseInt(document.getElementById('soLuongTem').value) || 1;
-            document.getElementById('sttCuoi').value = sttDau + soLuong - 1;
-        }
+            /** Tạo HTML gọn dùng riêng cho tài liệu gửi đến máy in. */
+            function buildLabelHtmlCompact(sttValue = '5200', snapshotData = null) {
+                const data = snapshotData || getLabelSnapshotData();
+                const sku = data.sku || '';
+                const hasSku = sku.length > 0;
+                const maBTP = data.maBTP || 'D009MT15066-02-0K';
+                const tenTP = data.tenTP || 'TP CẤP ĐÔNG SẦU RIÊNG...';
+                const toSanXuat = data.toSanXuat || 'Tèo';
+                const quyCach = data.quyCach || '20kg';
+                const vungFull = data.vungFull || 'Miền Tây';
+                const ngaySX = data.ngaySX || '22/06/2026';
+                const ngayDG = data.ngayDG || ngaySX;
 
-        // ==================== RESET STT ====================
-        /** Xác thực mật khẩu rồi đặt lại STT của thành phẩm hiện tại. */
-        function resetSTT() {
-            const password = prompt("Nhập mật khẩu để Reset STT:");
-            if (password === RESET_PASSWORD) {
-                if (confirm("Reset STT về 0 cho mã này?")) {
-                    document.getElementById('sttDau').value = 0;
-                    document.getElementById('soLuongTem').value = 1;
-                    saveProductSTT(0, 0, 0);
-                    updateSttCuoi();
-                    alert("Đã reset STT cho mã này thành công!");
+                return `
+                    <div class="lbl-inner">
+                        <div class="lbl-row lbl-top">
+                            <div>${hasSku ? `Mã SKU: ${sku}` : ''}</div>
+                            <div>Lot: ${maBTP}</div>
+                        </div>
+                        <div class="lbl-name">${tenTP}</div>
+                        <hr class="lbl-rule">
+                        <div class="lbl-row">
+                            <div><strong>Quy Cách /SPEC</strong><br>Thùng/túi: ${quyCach}</div>
+                            <div class="lbl-right"><strong>KHỐI LƯỢNG /WEIGHT</strong><br>${quyCach}</div>
+                        </div>
+                        <div class="lbl-row">
+                            <div><strong>TỔ/NHÓM</strong><br>${toSanXuat}</div>
+                            <div class="lbl-right"><strong>STT/INDEX</strong><br><span class="lbl-index">${sttValue}</span></div>
+                        </div>
+                        <div class="lbl-region"><strong>VÙNG NGUYÊN LIỆU</strong><br>${vungFull}</div>
+                        <div class="lbl-date">
+                            <div>Ngày SX: ${ngaySX}</div>
+                            <div>Ngày ĐG: ${ngayDG}</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // ==================== CẬP NHẬT XEM TRƯỚC NHÃN ====================
+            /** Cập nhật nhãn xem trước và lên lịch tải bộ đếm STT. */
+            function updatePreview() {
+                const preview = document.getElementById('previewLabel');
+                if (preview) {
+                    preview.innerHTML = buildLabelHtml();
                 }
-            } else if (password) {
-                alert("Mật khẩu sai!");
+                scheduleLoadProductSTT();
             }
-        }
 
-        // ==================== CHUYỂN TAB ====================
-        /** Chuyển giữa màn hình nhập thông tin và báo cáo sản lượng. */
-        function switchTab(tab) {
-            document.getElementById('content0').classList.toggle('hidden', tab !== 0);
-            document.getElementById('content1').classList.toggle('hidden', tab !== 1);
-            
-            document.getElementById('tab0').classList.toggle('border-blue-600', tab === 0);
-            document.getElementById('tab0').classList.toggle('text-blue-600', tab === 0);
-            document.getElementById('tab1').classList.toggle('border-blue-600', tab === 1);
-            document.getElementById('tab1').classList.toggle('text-blue-600', tab === 1);
-        }
+            // ==================== TÍNH STT CUỐI ====================
+            /** Tính STT cuối từ STT đầu và số lượng tem. */
+            function updateSttCuoi() {
+                const sttDau = toNonNegativeInt(document.getElementById('sttDau').value, 0);
+                const soLuong = parseInt(document.getElementById('soLuongTem').value) || 1;
+                document.getElementById('sttCuoi').value = sttDau + soLuong - 1;
+            }
 
-        // ==================== KHỞI TẠO KHI TRANG MỞ ====================
-        window.onload = () => {
-            const today = getVietnamDateKey();
-            document.getElementById('ngaySX').value = today;
-            document.getElementById('ngayDG').value = getPackagingDateKey();
+            // ==================== RESET STT ====================
+            /** Xác thực mật khẩu rồi đặt lại STT của thành phẩm hiện tại. */
+            function resetSTT() {
+                const password = prompt("Nhập mật khẩu để Reset STT:");
+                if (password === RESET_PASSWORD) {
+                    if (confirm("Reset STT về 0 cho mã này?")) {
+                        document.getElementById('sttDau').value = 0;
+                        document.getElementById('soLuongTem').value = 1;
+                        saveProductSTT(0, 0, 0);
+                        updateSttCuoi();
+                        alert("Đã reset STT cho mã này thành công!");
+                    }
+                } else if (password) {
+                    alert("Mật khẩu sai!");
+                }
+            }
 
-            syncControlsFromLot();
-            updateLotByRules();
+            // ==================== CHUYỂN TAB ====================
+            /** Chuyển giữa màn hình nhập thông tin và báo cáo sản lượng. */
+            function switchTab(tab) {
+                document.getElementById('content0').classList.toggle('hidden', tab !== 0);
+                document.getElementById('content1').classList.toggle('hidden', tab !== 1);
+                
+                document.getElementById('tab0').classList.toggle('border-blue-600', tab === 0);
+                document.getElementById('tab0').classList.toggle('text-blue-600', tab === 0);
+                document.getElementById('tab1').classList.toggle('border-blue-600', tab === 1);
+                document.getElementById('tab1').classList.toggle('text-blue-600', tab === 1);
+            }
 
-            scheduleNgayDongGoiSync();
+            // ==================== KHỞI TẠO KHI TRANG MỞ ====================
+            window.onload = () => {
+                const today = getVietnamDateKey();
+                document.getElementById('ngaySX').value = today;
+                document.getElementById('ngayDG').value = getPackagingDateKey();
 
-            loadProductSTT(true);
-            loadPrintHistory();
-            setTimeout(() => {
-                loadProductsFromFirebase();
-                updatePreview();
-            }, 800);
-        };
-    </script>
-</body>
-</html>
+                syncControlsFromLot();
+                updateLotByRules();
+
+                scheduleNgayDongGoiSync();
+
+                loadProductSTT(true);
+                loadPrintHistory();
+                setTimeout(() => {
+                    loadProductsFromFirebase();
+                    updatePreview();
+                }, 800);
+            };
+        </script>
+    </body>
+    </html>
