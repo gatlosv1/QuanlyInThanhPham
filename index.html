@@ -113,9 +113,9 @@
                         </div>
 
                         <div class="grid grid-cols-4 gap-4 mt-6">
-                            <div><label class="block text-sm font-medium mb-1">STT in đầu</label><input id="sttDau" type="number" value="0" class="w-full px-4 py-3 border rounded-xl" oninput="updateSttCuoi()"></div>
+                            <div><label class="block text-sm font-medium mb-1">STT in đầu</label><input id="sttDau" type="number" value="1" min="1" class="w-full px-4 py-3 border rounded-xl" oninput="updateSttCuoi()"></div>
                             <div><label class="block text-sm font-medium mb-1">Số lượng tem</label><input id="soLuongTem" type="number" value="1" min="1" class="w-full px-4 py-3 border rounded-xl font-semibold" oninput="updateSttCuoi()"></div>
-                            <div><label class="block text-sm font-medium mb-1">STT in cuối</label><input id="sttCuoi" type="number" value="0" class="w-full px-4 py-3 border rounded-xl bg-gray-50" readonly></div>
+                            <div><label class="block text-sm font-medium mb-1">STT in cuối</label><input id="sttCuoi" type="number" value="1" class="w-full px-4 py-3 border rounded-xl bg-gray-50" readonly></div>
                             <div>
                                 <label class="block text-sm font-medium mb-1">Ngày SX</label>
                                 <input id="ngaySX" type="date" class="w-full px-4 py-3 border rounded-xl" onchange="updatePreview()">
@@ -450,7 +450,6 @@
 
             let db;
             let firebaseReady = false;
-            let counterRef = null;
             const DEFAULT_DROPDOWNS = {
                 toSanXuat: ["Tèo", "Nguyên", "Ly", "Tuấn", "Lyka"],
                 nhaSX: ["009"],
@@ -711,7 +710,6 @@
                     firebase.initializeApp(firebaseConfig);
                 }
                 db = firebase.firestore();
-                counterRef = db.collection("settings").doc("stt_counter");
                 firebaseReady = true;
                 setFirebaseStatus("✅ Đã kết nối database");
             } catch (error) {
@@ -727,7 +725,9 @@
             let packagingDateEditedByUser = false;
             const RESET_PASSWORD = "20695";
             const PRODUCT_ACTION_PASSWORD = "200695";
+            const FIRST_STT = 1;
             let lastLoadedProductKey = '';
+            let lastObservedCounterDate = '';
             let productSttLoadTimer = null;
             let isPrinting = false;
 
@@ -830,6 +830,14 @@
             /** Kiểm tra ngày đóng gói định kỳ để tự chuyển ngày khi cần. */
             function scheduleNgayDongGoiSync() {
                 syncNgayDongGoi();
+
+                const currentCounterDate = getVietnamDateKey();
+                if (currentCounterDate !== lastObservedCounterDate) {
+                    lastObservedCounterDate = currentCounterDate;
+                    lastLoadedProductKey = '';
+                    loadProductSTT(true);
+                }
+
                 window.setTimeout(scheduleNgayDongGoiSync, 1000);
             }
 
@@ -837,8 +845,7 @@
             function getProductKey() {
                 const sku = (document.getElementById('sku').value || '').trim();
                 const tenTP = (document.getElementById('tenTP').value || '').trim();
-                const maBTP = (document.getElementById('maBTP').value || '').trim();
-                const raw = sku || `${tenTP || 'unknown'}_${maBTP || 'unknown'}`;
+                const raw = sku || tenTP || 'unknown';
                 return `p_${raw.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
             }
 
@@ -874,8 +881,9 @@
                 try {
                     const doc = await db.collection("productCounters").doc(counterKey).get();
                     const saved = doc.exists ? doc.data() : null;
-                    const currentSttDau = toNonNegativeInt(document.getElementById('sttDau').value, 0);
-                    const nextStart = toNonNegativeInt(saved ? saved.nextSTT : null, currentSttDau);
+                    const nextStart = saved
+                        ? toPositiveInt(saved.nextSTT, FIRST_STT)
+                        : FIRST_STT;
                     document.getElementById('sttDau').value = nextStart;
                     updateSttCuoi();
                     lastLoadedProductKey = counterKey;
@@ -1119,8 +1127,8 @@
                     toSanXuat: document.getElementById('toSanXuat').value || 'Tèo',
                     quyCach: document.getElementById('quyCach').value || '20kg',
                     soLuong: parseInt(document.getElementById('soLuongTem').value) || 1,
-                    sttDau: toNonNegativeInt(document.getElementById('sttDau').value, 0),
-                    sttCuoi: toNonNegativeInt(document.getElementById('sttCuoi').value, 0),
+                    sttDau: toPositiveInt(document.getElementById('sttDau').value, FIRST_STT),
+                    sttCuoi: toPositiveInt(document.getElementById('sttCuoi').value, FIRST_STT),
                     productKey: getProductKey(),
                     counterDate: getVietnamDateKey(),
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
@@ -1246,7 +1254,7 @@
 
                 updateSttCuoi();
 
-                const sttDau = toNonNegativeInt(document.getElementById('sttDau').value, 0);
+                const sttDau = toPositiveInt(document.getElementById('sttDau').value, FIRST_STT);
                 const count = toPositiveInt(document.getElementById('soLuongTem').value, 1);
                 const sttCuoi = sttDau + count - 1;
                 const labelSnapshot = getLabelSnapshotData();
@@ -1537,7 +1545,7 @@
 
                 updateSttCuoi();
 
-                const sttDau = toNonNegativeInt(document.getElementById('sttDau').value, 0);
+                const sttDau = toPositiveInt(document.getElementById('sttDau').value, FIRST_STT);
                 const count = toPositiveInt(document.getElementById('soLuongTem').value, 1);
                 const sttCuoi = sttDau + count - 1;
                 const lot = (document.getElementById('maBTP').value || 'LOT').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -2207,8 +2215,9 @@
             // ==================== TÍNH STT CUỐI ====================
             /** Tính STT cuối từ STT đầu và số lượng tem. */
             function updateSttCuoi() {
-                const sttDau = toNonNegativeInt(document.getElementById('sttDau').value, 0);
+                const sttDau = toPositiveInt(document.getElementById('sttDau').value, FIRST_STT);
                 const soLuong = parseInt(document.getElementById('soLuongTem').value) || 1;
+                document.getElementById('sttDau').value = sttDau;
                 document.getElementById('sttCuoi').value = sttDau + soLuong - 1;
             }
 
@@ -2217,12 +2226,12 @@
             function resetSTT() {
                 const password = prompt("Nhập mật khẩu để Reset STT:");
                 if (password === RESET_PASSWORD) {
-                    if (confirm("Reset STT về 0 cho mã này?")) {
-                        document.getElementById('sttDau').value = 0;
+                    if (confirm("Reset STT về 1 cho thành phẩm này?")) {
+                        document.getElementById('sttDau').value = FIRST_STT;
                         document.getElementById('soLuongTem').value = 1;
-                        saveProductSTT(0, 0, 0);
+                        saveProductSTT(FIRST_STT, FIRST_STT, FIRST_STT);
                         updateSttCuoi();
-                        alert("Đã reset STT cho mã này thành công!");
+                        alert("Đã reset STT thành phẩm về 1 thành công!");
                     }
                 } else if (password) {
                     alert("Mật khẩu sai!");
