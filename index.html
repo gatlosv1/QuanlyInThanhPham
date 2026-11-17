@@ -109,6 +109,9 @@
 
                                 <label class="block text-sm font-medium mb-1 mt-4">Tổ/Nhóm</label>
                                 <select id="toSanXuat" class="w-full px-4 py-3 border rounded-xl" onchange="updatePreview()"></select>
+
+                                <label class="block text-sm font-medium mb-1 mt-4">Khách hàng <span class="text-gray-400 font-normal">(không nhập thì không hiện trên tem)</span></label>
+                                <input id="khachHang" type="text" class="w-full px-4 py-3 border rounded-xl" placeholder="Tên khách hàng (tùy chọn)" oninput="updatePreview()">
                             </div>
                         </div>
 
@@ -1105,6 +1108,7 @@
                 document.getElementById('tenTP').value = item.tenTP || '';
                 document.getElementById('quyCach').value = item.quyCach || '20kg';
                 document.getElementById('toSanXuat').value = item.toSanXuat || 'Tèo';
+                document.getElementById('khachHang').value = item.khachHang || '';
                 syncControlsFromLot();
                 document.getElementById('sttDau').value = Number.isFinite(item.sttDau) ? item.sttDau : 0;
                 document.getElementById('soLuongTem').value = item.soLuong || 1;
@@ -1166,6 +1170,7 @@
                     sku: document.getElementById('sku').value || '',
                     tenTP: document.getElementById('tenTP').value || '',
                     toSanXuat: document.getElementById('toSanXuat').value || 'Tèo',
+                    khachHang: (document.getElementById('khachHang').value || '').trim(),
                     quyCach: document.getElementById('quyCach').value || '20kg',
                     soLuong: parseInt(document.getElementById('soLuongTem').value) || 1,
                     sttDau: toPositiveInt(document.getElementById('sttDau').value, FIRST_STT),
@@ -1396,7 +1401,8 @@
                     : (selectedRegionText || 'Miền Tây');
                 const ngaySX = document.getElementById('ngaySX').value ? document.getElementById('ngaySX').value.split('-').reverse().join('/') : '22/06/2026';
                 const ngayDG = document.getElementById('ngayDG').value ? document.getElementById('ngayDG').value.split('-').reverse().join('/') : ngaySX;
-                return { sku, maBTP, tenTP, toSanXuat, quyCach, vungFull, ngaySX, ngayDG };
+                const khachHang = (document.getElementById('khachHang').value || '').trim();
+                return { sku, maBTP, tenTP, toSanXuat, quyCach, vungFull, ngaySX, ngayDG, khachHang };
             }
 
             /** Chia văn bản thành các dòng vừa với chiều rộng canvas. */
@@ -1515,6 +1521,19 @@
                 ctx.fillText('VÙNG NGUYÊN LIỆU', 34, 404);
                 ctx.font = '800 34px Tahoma, Arial, sans-serif';
                 ctx.fillText(data.vungFull, 34, 438);
+
+                if (data.khachHang) {
+                    ctx.textAlign = 'right';
+                    ctx.font = '700 26px Tahoma, Arial, sans-serif';
+                    ctx.fillText('KHÁCH HÀNG', 866, 404);
+                    let customerSize = 34;
+                    ctx.font = `800 ${customerSize}px Tahoma, Arial, sans-serif`;
+                    while (customerSize > 18 && ctx.measureText(data.khachHang).width > 420) {
+                        customerSize -= 2;
+                        ctx.font = `800 ${customerSize}px Tahoma, Arial, sans-serif`;
+                    }
+                    ctx.fillText(data.khachHang, 866, 438);
+                }
 
                 ctx.font = '700 30px Tahoma, Arial, sans-serif';
                 ctx.fillText(`Ngày SX: ${data.ngaySX}`, 34, 530);
@@ -2174,6 +2193,7 @@
                 const vungFull = data.vungFull || 'Miền Tây';
                 const ngaySX = data.ngaySX || '22/06/2026';
                 const ngayDG = data.ngayDG || ngaySX;
+                const khachHang = data.khachHang || '';
 
                 return `
                     <div style="font-family: Tahoma, Arial, sans-serif; font-size: 9.0pt; font-weight: 700; line-height: 1.15; padding: 3px 5px; height: 100%; letter-spacing: -0.2px;">
@@ -2196,7 +2216,10 @@
                                 <span style="font-size: 15.8pt; font-weight: 800;">${sttValue}</span>
                             </div>
                         </div>
-                        <div style="margin-bottom: 3px; font-weight: 700;"><strong>VÙNG NGUYÊN LIỆU</strong><br>${vungFull}</div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-weight: 700;">
+                            <div><strong>VÙNG NGUYÊN LIỆU</strong><br>${vungFull}</div>
+                            ${khachHang ? `<div style="text-align: right;"><strong>KHÁCH HÀNG</strong><br>${khachHang}</div>` : ''}
+                        </div>
                         <div style="display: flex; justify-content: space-between; font-size: 9.0pt; margin-top: 5px;">
                             <div>Ngày SX: ${ngaySX}</div>
                             <div>Ngày ĐG: ${ngayDG}</div>
@@ -2217,6 +2240,7 @@
                 const vungFull = data.vungFull || 'Miền Tây';
                 const ngaySX = data.ngaySX || '22/06/2026';
                 const ngayDG = data.ngayDG || ngaySX;
+                const khachHang = data.khachHang || '';
 
                 return `
                     <div class="lbl-inner">
@@ -2234,7 +2258,10 @@
                             <div><strong>TỔ/NHÓM</strong><br>${toSanXuat}</div>
                             <div class="lbl-right"><strong>STT/INDEX</strong><br><span class="lbl-index">${sttValue}</span></div>
                         </div>
-                        <div class="lbl-region"><strong>VÙNG NGUYÊN LIỆU</strong><br>${vungFull}</div>
+                        <div class="lbl-row lbl-region">
+                            <div><strong>VÙNG NGUYÊN LIỆU</strong><br>${vungFull}</div>
+                            ${khachHang ? `<div class="lbl-right"><strong>KHÁCH HÀNG</strong><br>${khachHang}</div>` : ''}
+                        </div>
                         <div class="lbl-date">
                             <div>Ngày SX: ${ngaySX}</div>
                             <div>Ngày ĐG: ${ngayDG}</div>
